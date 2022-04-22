@@ -94,29 +94,37 @@ class PlexAutoLanguages(object):
 
     def process_activity_message(self, message: dict):
         for activity in message["ActivityNotification"]:
-            event_state = activity["event"]
-            if event_state != "ended":
-                continue
-            activity_type = activity["Activity"]["type"]
-            media_key = activity["Activity"]["Context"]["key"]
-            user_id = activity["Activity"]["userID"]
+            try:
+                self.process_activity(activity)
+            except Exception:
+                logger.exception("Unable to process activity")
 
-            # Switch to the user's Plex instance
-            user_plex = PlexUtils.get_plex_instance_of_user(self.plex, user_id)
+    def process_activity(self, activity: dict):
+        event_state = activity["event"]
+        if event_state != "ended":
+            return
+        activity_type = activity["Activity"]["type"]
+        if activity_type != "library.refresh.items":
+            return
+        media_key = activity["Activity"]["Context"]["key"]
+        user_id = activity["Activity"]["userID"]
 
-            # Skip if not an Episode
-            item = user_plex.fetchItem(media_key)
-            if not isinstance(item, Episode):
-                return
-            
-            # Change tracks if needed
-            item.reload()
-            self.change_default_tracks_if_needed(item)
+        # Switch to the user's Plex instance
+        user_plex = PlexUtils.get_plex_instance_of_user(self.plex, user_id)
+
+        # Skip if not an Episode
+        item = user_plex.fetchItem(media_key)
+        if not isinstance(item, Episode):
+            return
+        
+        # Change tracks if needed
+        item.reload()
+        self.change_default_tracks_if_needed(item)
 
     def notify(self, message: str):
+        logger.info(message)
         if self.apprise is None:
             return
-        logger.info(message)
         self.apprise.notify(title="Plex Auto Languages", body=message)
 
     def scheduler_callback(self):

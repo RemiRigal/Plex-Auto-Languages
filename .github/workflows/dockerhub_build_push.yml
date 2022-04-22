@@ -6,9 +6,6 @@ on:
       - 'master'
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - 'master'
 
 jobs:
   docker:
@@ -29,6 +26,7 @@ jobs:
         with:
           images: remirigal/plex-auto-languages
           tags: |
+            type=ref,event=branch
             type=ref,event=tag
       - name: Build and push
         uses: docker/build-push-action@v2

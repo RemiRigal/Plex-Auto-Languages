@@ -1,0 +1,17 @@
+plexautolanguages:
+  update_level: "show"
+  update_strategy: "next"
+  trigger_on_play: true
+  trigger_on_activity: false
+
+  plex:
+    url: ""
+    token: ""
+
+  scheduler:
+    enable: true
+    schedule_time: "02:00"
+
+  notifications:
+    enable: false
+    apprise_configs: []

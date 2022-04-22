@@ -33,8 +33,10 @@ jobs:
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+      - name: Checkout repository
+        uses: actions/checkout@v3
       - name: Update repo description
-        uses: peter-evans/dockerhub-description@v2
+        uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}

@@ -29,9 +29,7 @@ jobs:
         with:
           images: remirigal/plex-auto-languages
           tags: |
-            type=ref,event=branch
             type=ref,event=tag
-            type=match,pattern=\d.\d.\d
       - name: Build and push
         uses: docker/build-push-action@v2
         with:

@@ -1,6 +1,6 @@
 # Plex Auto Languages
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/RemiRigal/Plex-Auto-Languages?style=flat-square)](https://hub.docker.com/r/remirigal/plex-auto-languages)
+[![Docker Pulls](https://img.shields.io/docker/pulls/remirigal/plex-auto-languages?style=flat-square)](https://hub.docker.com/r/remirigal/plex-auto-languages)
 [![License](https://img.shields.io/github/license/RemiRigal/Plex-Auto-Languages?style=flat-square)](https://github.com/RemiRigal/Plex-Auto-Languages/blob/master/LICENSE)
 
 This application lets you have a Netflix-like experience by auto-updating the language of your Plex TV Show episodes based on the current language you are using without messing with your existing language preferences.  
@@ -10,7 +10,9 @@ You want to watch The Mandalorian in english but still want to watch Game of Thr
 
 ## Getting Started
 
-The recommended way of running this application is by using Docker. A Docker image is available on [Docker Hub]().
+The recommended way of running this application is by using Docker. A Docker image is available on [Docker Hub](https://hub.docker.com/r/remirigal/plex-auto-languages).
+
+The application requires a `Plex Token`, if you don't know how to find yours, please see the [official guide](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/).
 
 ### Docker compose minimal configuration
 

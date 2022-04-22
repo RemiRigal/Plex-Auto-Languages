@@ -26,7 +26,7 @@ def env_dict_update(d, var_name: str=""):
             d[k] = env_dict_update(d[k], new_var_name)
         elif new_var_name in os.environ:
             d[k] = yaml.safe_load(os.environ.get(new_var_name))
-            logger.info(f"Setting value of parameter {new_var_name} to '{d[k]}' from environment variable")
+            logger.info(f"Setting value of parameter {new_var_name} from environment variable")
     return d
 
 

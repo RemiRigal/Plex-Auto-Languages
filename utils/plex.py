@@ -69,8 +69,6 @@ class PlexUtils(object):
                 scores[index] += 3
             if reference.channels <= stream.channels:
                 scores[index] += 1
-            if reference.title <= stream.title:
-                scores[index] += 1
         return streams[scores.index(max(scores))]
 
     @staticmethod
@@ -89,10 +87,6 @@ class PlexUtils(object):
         for index, stream in enumerate(streams):
             if reference.forced == stream.forced:
                 scores[index] += 3
-            if reference.codec == stream.codec:
-                scores[index] += 1
-            if reference.title == stream.title:
-                scores[index] += 1
         return streams[scores.index(max(scores))]
 
     @staticmethod

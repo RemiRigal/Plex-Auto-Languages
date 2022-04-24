@@ -10,9 +10,14 @@ You want to watch The Mandalorian in english but still want to watch Game of Thr
 
 ## Getting Started
 
-The recommended way of running this application is by using Docker. A Docker image is available on [Docker Hub](https://hub.docker.com/r/remirigal/plex-auto-languages).
-
 The application requires a `Plex Token`, if you don't know how to find yours, please see the [official guide](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/).
+
+The recommended way of running this application is by using Docker. A Docker image is available on [Docker Hub](https://hub.docker.com/r/remirigal/plex-auto-languages) and [installation instructions](#docker-installation) are detailed below.
+
+PlexAutoLanguages can also be run natively with Python, see the [detailed instructions](#python-installation).
+
+
+## Docker installation
 
 ### Docker compose minimal configuration
 
@@ -43,6 +48,30 @@ services:
       - ./config.yaml:/config/config.yaml
     restart: unless-stopped
 ```
+
+
+## Python installation
+
+This application requires Python 3 and has only been tested with Python 3.8 and higher.
+
+Start by cloning the repository:
+```bash
+git clone git@github.com:RemiRigal/Plex-Auto-Languages.git
+```
+
+Install the required dependencies:
+```bash
+cd Plex-Auto-Languages
+python3 -m pip install -r requirements.txt
+```
+
+Create a YAML configuration file (`config.yaml` for example) based on the template showed in the [configuration section](#configuration) below. Note that only the parameters `plex.url` and `plex.token` are required.
+
+You can now start PlexAutoLanguages (don't forget to change the name of the configuration file if yours is different):
+```bash
+python3 main.py -c ./config.yaml
+```
+
 
 
 ## Configuration

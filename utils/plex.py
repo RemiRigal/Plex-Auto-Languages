@@ -31,7 +31,7 @@ class PlexUtils(object):
 
     @staticmethod
     def get_selected_streams(episode: Episode):
-        audio_stream = [a for a in episode.audioStreams() if a.selected][0]
+        audio_stream = ([a for a in episode.audioStreams() if a.selected] + [None])[0]
         subtitle_stream = ([s for s in episode.subtitleStreams() if s.selected] + [None])[0]
         return audio_stream, subtitle_stream
 
@@ -69,8 +69,8 @@ class PlexUtils(object):
                 scores[index] += 3
             if reference.channels <= stream.channels:
                 scores[index] += 1
-            if reference.title <= stream.title:
-                scores[index] += 1
+            if reference.title is not None and stream.title is not None and reference.title == stream.title:
+                scores[index] += 5
         return streams[scores.index(max(scores))]
 
     @staticmethod
@@ -89,10 +89,10 @@ class PlexUtils(object):
         for index, stream in enumerate(streams):
             if reference.forced == stream.forced:
                 scores[index] += 3
-            if reference.codec == stream.codec:
+            if reference.codec is not None and stream.codec is not None and reference.codec == stream.codec:
                 scores[index] += 1
-            if reference.title == stream.title:
-                scores[index] += 1
+            if reference.title is not None and stream.title is not None and reference.title == stream.title:
+                scores[index] += 5
         return streams[scores.index(max(scores))]
 
     @staticmethod

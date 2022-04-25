@@ -148,7 +148,7 @@ class PlexAutoLanguages(object):
         message = (
             f"Show: {episode.show().title}\n"
             f"Audio: {target_audio.displayTitle if target_audio is not None else 'None'}\n"
-            f"Subtitles: {target_subtitles.displayTitle  if target_subtitles is not None else 'None'}\n"
+            f"Subtitles: {target_subtitles.displayTitle if target_subtitles is not None else 'None'}\n"
             f"Updated episodes: {nb_updated_episodes}/{nb_total_episodes} ({interval_str})"
         )
         logger.info(f"Language update:\n{message}")
@@ -176,7 +176,7 @@ class PlexAutoLanguages(object):
             return
 
         # Perform changes
-        for episode, part, stream_type, new_stream in changes:
+        for _, part, stream_type, new_stream in changes:
             if stream_type == AudioStream.STREAMTYPE:
                 part.setDefaultAudioStream(new_stream)
             elif stream_type == SubtitleStream.STREAMTYPE and new_stream is None:
@@ -185,7 +185,7 @@ class PlexAutoLanguages(object):
                 part.setDefaultSubtitleStream(new_stream)
 
         # Notify changes
-        nb_updated_episodes = len({episode.key for episode, _, _, _ in changes})
+        nb_updated_episodes = len({e.key for e, _, _, _ in changes})
         nb_total_episodes = len(episodes)
         self.notify_changes(episode, episodes, nb_updated_episodes, nb_total_episodes)
 

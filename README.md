@@ -78,6 +78,8 @@ python3 main.py -c ./config.yaml
 
 The application can be configured either with environment variables or with a YAML file mounted at `/config/config.yaml`. Every parameter listed in this section can be overriden with the corresponding environment variables (eg. the environment variable `PLEX_URL` will override the parameter `plex.url`, `NOTIFICATIONS_ENABLE` will override the parameter `notifications.enable` etc...).
 
+The Plex Token can also be provided as a Docker secret named `plex_token`.
+
 Here is an example of a complete configuration file:
 ```yaml
 plexautolanguages:

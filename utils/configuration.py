@@ -81,12 +81,12 @@ class Configuration(object):
         self._config = env_dict_update(self._config)
 
     def _override_plex_token_from_secret(self):
-        plex_token_secret_path = "/run/secrets/plex_token"
-        if not os.path.exists(plex_token_secret_path):
+        plex_token_file_path = os.environ.get("PLEX_TOKEN_FILE", "/run/secrets/plex_token")
+        if not os.path.exists(plex_token_file_path):
             return
         logger.info("Getting PLEX_TOKEN from Docker secret")
-        with open(plex_token_secret_path, "r") as stream:
-            plex_token = stream.read()
+        with open(plex_token_file_path, "r") as stream:
+            plex_token = stream.readline().strip()
         self._config["plex"]["token"] = plex_token
 
     def _validate_config(self):

@@ -106,11 +106,11 @@ class PlexUtils(object):
                 # Audio stream
                 matching_audio_stream = PlexUtils.match_audio_stream(selected_audio_stream, part.audioStreams())
                 if matching_audio_stream is not None and matching_audio_stream.id != current_audio_stream.id:
-                    changes.append((part, AudioStream.STREAMTYPE, matching_audio_stream))
+                    changes.append((episode, part, AudioStream.STREAMTYPE, matching_audio_stream))
                 # Subtitle stream
                 matching_subtitle_stream = PlexUtils.match_subtitle_stream(selected_subtitle_stream, part.subtitleStreams())
                 if current_subtitle_stream is not None and matching_subtitle_stream is None:
-                    changes.append((part, SubtitleStream.STREAMTYPE, None))
+                    changes.append((episode, part, SubtitleStream.STREAMTYPE, None))
                 if matching_subtitle_stream is not None and (current_subtitle_stream is None or matching_subtitle_stream.id != current_subtitle_stream.id):
-                    changes.append((part, SubtitleStream.STREAMTYPE, matching_subtitle_stream))
+                    changes.append((episode, part, SubtitleStream.STREAMTYPE, matching_subtitle_stream))
         return changes

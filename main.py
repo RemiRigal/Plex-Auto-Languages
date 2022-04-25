@@ -1,6 +1,7 @@
 import signal
 import argparse
 from time import sleep
+from typing import List
 from apprise import Apprise
 from plexapi.video import Episode
 from plexapi.server import PlexServer
@@ -134,11 +135,26 @@ class PlexAutoLanguages(object):
         item.reload()
         self.change_default_tracks_if_needed(item)
 
-    def notify(self, message: str):
-        logger.info(message)
+    def notify_changes(self, episode: Episode, episodes: List[Episode], nb_updated_episodes: int, nb_total_episodes: int):
+        target_audio, target_subtitles = PlexUtils.get_selected_streams(episode)
+        season_numbers = [e.seasonNumber for e in episodes]
+        min_season_number, max_season_number = min(season_numbers), max(season_numbers)
+        min_episode_number = min([e.episodeNumber for e in episodes if e.seasonNumber == min_season_number])
+        max_episode_number = max([e.episodeNumber for e in episodes if e.seasonNumber == max_season_number])
+        from_str = f"S{min_season_number:02}E{min_episode_number:02}"
+        to_str = f"S{max_season_number:02}E{max_episode_number:02}"
+        interval_str = f"{from_str} - {to_str}" if from_str != to_str else from_str
+        title = f"PlexAutoLanguages - {episode.show().title}"
+        message = (
+            f"Show: {episode.show().title}\n"
+            f"Audio: {target_audio.displayTitle}\n"
+            f"Subtitles: {target_subtitles.displayTitle}\n"
+            f"Updated episodes: {nb_updated_episodes}/{nb_total_episodes} ({interval_str})"
+        )
+        logger.info(f"Language update:\n{message}")
         if self.apprise is None:
             return
-        self.apprise.notify(title="Plex Auto Languages", body=message)
+        self.apprise.notify(title=title, body=message)
 
     def scheduler_callback(self):
         logger.info(f"Starting scheduler task")
@@ -160,15 +176,18 @@ class PlexAutoLanguages(object):
             return
 
         # Perform changes
-        for part, stream_type, new_stream in changes:
+        for episode, part, stream_type, new_stream in changes:
             if stream_type == AudioStream.STREAMTYPE:
                 part.setDefaultAudioStream(new_stream)
             elif stream_type == SubtitleStream.STREAMTYPE and new_stream is None:
                 part.resetDefaultSubtitleStream()
             elif stream_type == SubtitleStream.STREAMTYPE:
                 part.setDefaultSubtitleStream(new_stream)
-        unique_parts = {part.id for part, _, _ in changes}
-        self.notify(f"Updated default language of {len(unique_parts)} file(s) for TV Show '{episode.show().title}'")
+
+        # Notify changes
+        nb_updated_episodes = len({episode.key for episode, _, _, _ in changes})
+        nb_total_episodes = len(episodes)
+        self.notify_changes(episode, episodes, nb_updated_episodes, nb_total_episodes)
 
 
 def parse_args():

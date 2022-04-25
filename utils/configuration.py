@@ -43,6 +43,7 @@ class Configuration(object):
             logger.info(f"Parsing config file '{user_config_path}'")
             self._override_from_config_file(user_config_path)
         self._override_from_env()
+        self._override_plex_token_from_secret()
         self._validate_config()
         self._trigger_on_play = None
         self._trigger_on_activity = None
@@ -78,6 +79,15 @@ class Configuration(object):
 
     def _override_from_env(self):
         self._config = env_dict_update(self._config)
+
+    def _override_plex_token_from_secret(self):
+        plex_token_secret_path = "/run/secrets/plex_token"
+        if not os.path.exists(plex_token_secret_path):
+            return
+        logger.info("Getting PLEX_TOKEN from Docker secret")
+        with open(plex_token_secret_path, "r") as stream:
+            plex_token = stream.read()
+        self._config["plex"]["token"] = plex_token
 
     def _validate_config(self):
         if self.get("plex.url") == "":

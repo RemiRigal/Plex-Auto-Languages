@@ -147,8 +147,8 @@ class PlexAutoLanguages(object):
         title = f"PlexAutoLanguages - {episode.show().title}"
         message = (
             f"Show: {episode.show().title}\n"
-            f"Audio: {target_audio.displayTitle}\n"
-            f"Subtitles: {target_subtitles.displayTitle}\n"
+            f"Audio: {target_audio.displayTitle if target_audio is not None else 'None'}\n"
+            f"Subtitles: {target_subtitles.displayTitle  if target_subtitles is not None else 'None'}\n"
             f"Updated episodes: {nb_updated_episodes}/{nb_total_episodes} ({interval_str})"
         )
         logger.info(f"Language update:\n{message}")

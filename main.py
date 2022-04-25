@@ -1,3 +1,4 @@
+import signal
 import argparse
 from time import sleep
 from apprise import Apprise
@@ -15,6 +16,9 @@ from utils.plex import PlexUtils
 class PlexAutoLanguages(object):
 
     def __init__(self, user_config_path: str):
+        self.alive = False
+        self.set_signal_handlers()
+        self.notifier = None
         self.config = Configuration(user_config_path)
         # Plex
         self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"))
@@ -32,14 +36,23 @@ class PlexAutoLanguages(object):
             for apprise_config in self.config.get("notifications.apprise_configs"):
                 self.apprise.add(apprise_config)
 
+    def set_signal_handlers(self):
+        signal.signal(signal.SIGINT, self.stop)
+        signal.signal(signal.SIGTERM, self.stop)
+
+    def stop(self, *args):
+        logger.info("Received SIGINT or SIGTERM, stopping gracefully")
+        self.alive = False
+
     def start(self):
         logger.info(f"Starting alert listener")
-        notifier = self.plex.startAlertListener(self.alert_listener_callback)
+        self.notifier = self.plex.startAlertListener(self.alert_listener_callback)
         if self.scheduler:
             logger.info(f"Starting scheduler")
             self.scheduler.start()
-        while notifier.is_alive():
-            sleep(5)
+        self.alive = True
+        while self.notifier.is_alive() and self.alive:
+            sleep(1)
         if self.scheduler:
             logger.info(f"Stopping scheduler")
             self.scheduler.stop_event.set()

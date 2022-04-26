@@ -14,7 +14,7 @@ logger = get_logger()
 class PlexUtils(object):
 
     @staticmethod
-    def get_plex_instance_of_user(plex: PlexServer, user_id: Union[int,str]):
+    def get_plex_instance_of_user(plex: PlexServer, user_id: Union[int, str]):
         try:
             return plex.switchUser(user_id)
         except NotFound:
@@ -111,6 +111,7 @@ class PlexUtils(object):
                 matching_subtitle_stream = PlexUtils.match_subtitle_stream(selected_subtitle_stream, part.subtitleStreams())
                 if current_subtitle_stream is not None and matching_subtitle_stream is None:
                     changes.append((episode, part, SubtitleStream.STREAMTYPE, None))
-                if matching_subtitle_stream is not None and (current_subtitle_stream is None or matching_subtitle_stream.id != current_subtitle_stream.id):
+                if matching_subtitle_stream is not None and \
+                        (current_subtitle_stream is None or matching_subtitle_stream.id != current_subtitle_stream.id):
                     changes.append((episode, part, SubtitleStream.STREAMTYPE, matching_subtitle_stream))
         return changes

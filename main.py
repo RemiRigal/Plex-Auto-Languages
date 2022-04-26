@@ -46,18 +46,18 @@ class PlexAutoLanguages(object):
         self.alive = False
 
     def start(self):
-        logger.info(f"Starting alert listener")
+        logger.info("Starting alert listener")
         self.notifier = self.plex.startAlertListener(self.alert_listener_callback)
         if self.scheduler:
-            logger.info(f"Starting scheduler")
+            logger.info("Starting scheduler")
             self.scheduler.start()
         self.alive = True
         while self.notifier.is_alive() and self.alive:
             sleep(1)
         if self.scheduler:
-            logger.info(f"Stopping scheduler")
+            logger.info("Stopping scheduler")
             self.scheduler.stop_event.set()
-        logger.info(f"Stopping alert listener")
+        logger.info("Stopping alert listener")
 
     def alert_listener_callback(self, message: dict):
         if self.config.get("trigger_on_play") and message["type"] == "playing":
@@ -71,7 +71,7 @@ class PlexAutoLanguages(object):
                 self.process_play_session(play_session)
             except Exception:
                 logger.exception("Unable to process play session")
-    
+
     def process_play_session(self, play_session: dict):
         # Get User id and user's Plex instance
         client_identifier = play_session["clientIdentifier"]
@@ -130,7 +130,7 @@ class PlexAutoLanguages(object):
         item = user_plex.fetchItem(media_key)
         if not isinstance(item, Episode):
             return
-        
+
         # Change tracks if needed
         item.reload()
         self.change_default_tracks_if_needed(item)
@@ -157,7 +157,7 @@ class PlexAutoLanguages(object):
         self.apprise.notify(title=title, body=message)
 
     def scheduler_callback(self):
-        logger.info(f"Starting scheduler task")
+        logger.info("Starting scheduler task")
         min_date = datetime.now() - timedelta(days=1)
         history = self.plex.history(mindate=min_date)
         for episode in [media for media in history if isinstance(media, Episode)]:
@@ -169,7 +169,7 @@ class PlexAutoLanguages(object):
         update_level = self.config.get("update_level")
         update_strategy = self.config.get("update_strategy")
         episodes = PlexUtils.get_episodes_to_process(update_level, update_strategy, episode)
-        
+
         # Get changes to perform
         changes = PlexUtils.get_track_changes(episode, episodes)
         if len(changes) == 0:
@@ -207,4 +207,4 @@ if __name__ == "__main__":
     try:
         plex_auto_languages.start()
     except KeyboardInterrupt:
-        logger.info(f"Caught KeyboardInterrupt, shutting down gracefully")
+        logger.info("Caught KeyboardInterrupt, shutting down gracefully")

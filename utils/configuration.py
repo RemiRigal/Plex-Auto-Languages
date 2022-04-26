@@ -19,7 +19,7 @@ def deep_dict_update(d, u):
     return d
 
 
-def env_dict_update(d, var_name: str=""):
+def env_dict_update(d, var_name: str = ""):
     for k, v in d.items():
         new_var_name = (f"{var_name}_{k}" if var_name != "" else k).upper()
         if isinstance(v, Mapping):
@@ -65,13 +65,13 @@ class Configuration(object):
         if self._trigger_on_play is None:
             self._trigger_on_play = self.get("trigger_on_play")
         return self._trigger_on_play
-    
+
     @property
     def trigger_on_activity(self):
         if self._trigger_on_activity is None:
             self._trigger_on_activity = self.get("trigger_on_activity")
         return self._trigger_on_activity
-    
+
     def _override_from_config_file(self, user_config_path: str):
         with open(user_config_path, "r") as stream:
             user_config = yaml.safe_load(stream).get("plexautolanguages", {})
@@ -105,8 +105,7 @@ class Configuration(object):
         if self.get("scheduler.enable") and not re.match(r"^\d{2}:\d{2}$", self.get("scheduler.schedule_time")):
             logger.error("A valid 'schedule_time' parameter with the format 'HH:MM' is required (ex: 02:30)")
             sys.exit(0)
-        if self.get("notifications.enable") and not "apprise_configs" in self.get("notifications"):
+        if self.get("notifications.enable") and "apprise_configs" not in self.get("notifications"):
             logger.error("To enable notifications, the field 'apprise_configs' is required")
             sys.exit(0)
-        logger.info(f"The provided configuration has been successfully validated")
-
+        logger.info("The provided configuration has been successfully validated")

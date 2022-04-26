@@ -29,11 +29,11 @@ class PlexUtils(object):
         current_players = list(itertools.chain.from_iterable([s.players for s in plex_sessions]))
         matching_players = [p for p in current_players if p.machineIdentifier == client_identifier]
         if len(matching_players) == 0:
-            return None
+            return (None, None)
         player = matching_players[0]
         user = PlexUtils.get_user_from_user_id(plex, player.userID)
         if user is None:
-            return None
+            return (None, None)
         return (user.id, user.name)
 
     @staticmethod

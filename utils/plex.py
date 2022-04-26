@@ -2,7 +2,6 @@ import itertools
 from typing import List, Union
 from plexapi.video import Episode
 from plexapi.server import PlexServer
-from plexapi.exceptions import NotFound
 from plexapi.media import AudioStream, SubtitleStream
 
 from utils.logger import get_logger
@@ -14,20 +13,35 @@ logger = get_logger()
 class PlexUtils(object):
 
     @staticmethod
-    def get_plex_instance_of_user(plex: PlexServer, user_id: Union[int, str]):
-        try:
-            return plex.switchUser(user_id)
-        except NotFound:
+    def get_plex_instance_of_user(plex: PlexServer, plex_user_id: int, user_id: Union[int, str]):
+        if plex_user_id == int(user_id):
             return plex
+        matching_users = [u for u in plex.myPlexAccount().users() if u.id == int(user_id)]
+        if len(matching_users) == 0:
+            logger.error(f"Unable to find user with id '{user_id}'")
+            return None
+        user_token = matching_users[0].get_token(plex.machineIdentifier)
+        return PlexServer(plex._baseurl, token=user_token)
 
     @staticmethod
-    def get_user_id_from_client_identifier(plex: PlexServer, client_identifier: str):
+    def get_user_from_client_identifier(plex: PlexServer, client_identifier: str):
         plex_sessions = plex.sessions()
         current_players = list(itertools.chain.from_iterable([s.players for s in plex_sessions]))
         matching_players = [p for p in current_players if p.machineIdentifier == client_identifier]
         if len(matching_players) == 0:
             return None
-        return matching_players[0].userID
+        player = matching_players[0]
+        user = PlexUtils.get_user_from_user_id(plex, player.userID)
+        if user is None:
+            return None
+        return (user.id, user.name)
+
+    @staticmethod
+    def get_user_from_user_id(plex: PlexServer, user_id: Union[int, str]):
+        matching_users = [u for u in plex.systemAccounts() if u.id == int(user_id)]
+        if len(matching_users) == 0:
+            return None
+        return matching_users[0]
 
     @staticmethod
     def get_selected_streams(episode: Episode):

@@ -1,3 +1,4 @@
+import sys
 import signal
 import argparse
 from time import sleep
@@ -23,6 +24,7 @@ class PlexAutoLanguages(object):
         self.config = Configuration(user_config_path)
         # Plex
         self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"))
+        self.plex_user_id = self.get_plex_user_id()
         self.session_states = dict()    # session_key: session_state
         self.default_streams = dict()   # item_key: (audio_stream_id, substitle_stream_id)
         self.user_clients = dict()      # client_identifier: user_id
@@ -36,6 +38,15 @@ class PlexAutoLanguages(object):
             self.apprise = Apprise()
             for apprise_config in self.config.get("notifications.apprise_configs"):
                 self.apprise.add(apprise_config)
+
+    def get_plex_user_id(self):
+        plex_username = self.plex.myPlexAccount().username
+        for account in self.plex.systemAccounts():
+            if account.name == plex_username:
+                logger.info(f"Successfully connected as user '{account.name}' (id: {account.id})")
+                return account.id
+        logger.error("Unable to find the user id associated with the provided Plex Token")
+        sys.exit(0)
 
     def set_signal_handlers(self):
         signal.signal(signal.SIGINT, self.stop)
@@ -76,12 +87,14 @@ class PlexAutoLanguages(object):
         # Get User id and user's Plex instance
         client_identifier = play_session["clientIdentifier"]
         if client_identifier not in self.user_clients:
-            self.user_clients[client_identifier] = PlexUtils.get_user_id_from_client_identifier(self.plex, client_identifier)
-        user_id = self.user_clients[client_identifier]
+            self.user_clients[client_identifier] = PlexUtils.get_user_from_client_identifier(self.plex, client_identifier)
+        user_id, username = self.user_clients[client_identifier]
         if user_id is None:
             return
         logger.debug(f"User id: {user_id}")
-        user_plex = PlexUtils.get_plex_instance_of_user(self.plex, user_id)
+        user_plex = PlexUtils.get_plex_instance_of_user(self.plex, self.plex_user_id, user_id)
+        if user_plex is None:
+            return
 
         # Skip if not an Episode
         item = user_plex.fetchItem(play_session["key"])
@@ -93,7 +106,13 @@ class PlexAutoLanguages(object):
         session_state = play_session["state"]
         if session_key in self.session_states and self.session_states[session_key] == session_state:
             return
-        self.session_states.setdefault(session_key, session_state)
+        self.session_states[session_key] = session_state
+
+        # Reset cache if the session is stopped
+        if session_state == "stopped":
+            logger.info("Reseting cache due to stopped session")
+            del self.session_states[session_key]
+            del self.user_clients[client_identifier]
 
         # Skip if selected streams are unchanged
         item.reload()
@@ -104,7 +123,7 @@ class PlexAutoLanguages(object):
         self.default_streams.setdefault(item.key, pair_id)
 
         # Change tracks if needed
-        self.change_default_tracks_if_needed(item)
+        self.change_default_tracks_if_needed(username, item)
 
     def process_activity_message(self, message: dict):
         for activity in message["ActivityNotification"]:
@@ -124,7 +143,9 @@ class PlexAutoLanguages(object):
         user_id = activity["Activity"]["userID"]
 
         # Switch to the user's Plex instance
-        user_plex = PlexUtils.get_plex_instance_of_user(self.plex, user_id)
+        user_plex = PlexUtils.get_plex_instance_of_user(self.plex, self.plex_user_id, user_id)
+        if user_plex is None:
+            return
 
         # Skip if not an Episode
         item = user_plex.fetchItem(media_key)
@@ -133,9 +154,12 @@ class PlexAutoLanguages(object):
 
         # Change tracks if needed
         item.reload()
-        self.change_default_tracks_if_needed(item)
+        user = PlexUtils.get_user_from_user_id(self.plex, user_id)
+        if user is None:
+            return
+        self.change_default_tracks_if_needed(user.name, item)
 
-    def notify_changes(self, episode: Episode, episodes: List[Episode], nb_updated_episodes: int, nb_total_episodes: int):
+    def notify_changes(self, username: str, episode: Episode, episodes: List[Episode], nb_updated: int, nb_total: int):
         target_audio, target_subtitles = PlexUtils.get_selected_streams(episode)
         season_numbers = [e.seasonNumber for e in episodes]
         min_season_number, max_season_number = min(season_numbers), max(season_numbers)
@@ -143,15 +167,17 @@ class PlexAutoLanguages(object):
         max_episode_number = max([e.episodeNumber for e in episodes if e.seasonNumber == max_season_number])
         from_str = f"S{min_season_number:02}E{min_episode_number:02}"
         to_str = f"S{max_season_number:02}E{max_episode_number:02}"
-        interval_str = f"{from_str} - {to_str}" if from_str != to_str else from_str
+        range_str = f"{from_str} - {to_str}" if from_str != to_str else from_str
         title = f"PlexAutoLanguages - {episode.show().title}"
         message = (
             f"Show: {episode.show().title}\n"
+            f"User: {username}\n"
             f"Audio: {target_audio.displayTitle if target_audio is not None else 'None'}\n"
             f"Subtitles: {target_subtitles.displayTitle if target_subtitles is not None else 'None'}\n"
-            f"Updated episodes: {nb_updated_episodes}/{nb_total_episodes} ({interval_str})"
+            f"Updated episodes: {nb_updated}/{nb_total} ({range_str})"
         )
-        logger.info(f"Language update:\n{message}")
+        inline_message = message.replace("\n", " | ")
+        logger.info(f"Language update: {inline_message}")
         if self.apprise is None:
             return
         self.apprise.notify(title=title, body=message)
@@ -162,9 +188,9 @@ class PlexAutoLanguages(object):
         history = self.plex.history(mindate=min_date)
         for episode in [media for media in history if isinstance(media, Episode)]:
             episode.reload()
-            self.change_default_tracks_if_needed(episode)
+            self.change_default_tracks_if_needed(None, episode)
 
-    def change_default_tracks_if_needed(self, episode: Episode):
+    def change_default_tracks_if_needed(self, username: str, episode: Episode):
         # Get episodes to update
         update_level = self.config.get("update_level")
         update_strategy = self.config.get("update_strategy")
@@ -187,7 +213,7 @@ class PlexAutoLanguages(object):
         # Notify changes
         nb_updated_episodes = len({e.key for e, _, _, _ in changes})
         nb_total_episodes = len(episodes)
-        self.notify_changes(episode, episodes, nb_updated_episodes, nb_total_episodes)
+        self.notify_changes(username, episode, episodes, nb_updated_episodes, nb_total_episodes)
 
 
 def parse_args():

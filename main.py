@@ -13,14 +13,17 @@ from utils.logger import init_logger
 from utils.scheduler import Scheduler
 from utils.configuration import Configuration
 from utils.plex import PlexUtils
+from utils.healthcheck import HealthcheckServer
 
 
 class PlexAutoLanguages(object):
 
     def __init__(self, user_config_path: str):
         self.alive = False
-        self.set_signal_handlers()
         self.notifier = None
+        self.set_signal_handlers()
+        self.healthcheck_server = HealthcheckServer("Plex-Auto-Languages", self.is_ready, self.is_healthy)
+        self.healthcheck_server.start()
         self.config = Configuration(user_config_path)
         # Plex
         self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"))
@@ -48,6 +51,12 @@ class PlexAutoLanguages(object):
         logger.error("Unable to find the user id associated with the provided Plex Token")
         sys.exit(0)
 
+    def is_ready(self):
+        return self.alive
+
+    def is_healthy(self):
+        return self.alive and self.notifier is not None and self.notifier.is_alive()
+
     def set_signal_handlers(self):
         signal.signal(signal.SIGINT, self.stop)
         signal.signal(signal.SIGTERM, self.stop)
@@ -69,6 +78,7 @@ class PlexAutoLanguages(object):
             logger.info("Stopping scheduler")
             self.scheduler.stop_event.set()
         logger.info("Stopping alert listener")
+        self.healthcheck_server.shutdown()
 
     def alert_listener_callback(self, message: dict):
         if self.config.get("trigger_on_play") and message["type"] == "playing":

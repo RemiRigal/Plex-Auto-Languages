@@ -110,7 +110,6 @@ class PlexAutoLanguages(object):
 
         # Reset cache if the session is stopped
         if session_state == "stopped":
-            logger.info("Reseting cache due to stopped session")
             del self.session_states[session_key]
             del self.user_clients[client_identifier]
 

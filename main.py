@@ -31,6 +31,7 @@ class PlexAutoLanguages(object):
         self.session_states = dict()    # session_key: session_state
         self.default_streams = dict()   # item_key: (audio_stream_id, substitle_stream_id)
         self.user_clients = dict()      # client_identifier: user_id
+        self.newly_added = dict()       # episode_id: added_at
         # Scheduler
         self.scheduler = None
         if self.config.get("scheduler.enable"):
@@ -85,6 +86,8 @@ class PlexAutoLanguages(object):
             self.process_playing_message(message)
         elif self.config.get("trigger_on_activity") and message["type"] == "activity":
             self.process_activity_message(message)
+        elif message["type"] == "timeline":
+            self.process_timeline_message(message)
 
     def process_playing_message(self, message: dict):
         for play_session in message["PlaySessionStateNotification"]:
@@ -101,7 +104,6 @@ class PlexAutoLanguages(object):
         user_id, username = self.user_clients[client_identifier]
         if user_id is None:
             return
-        logger.debug(f"User id: {user_id}")
         user_plex = PlexUtils.get_plex_instance_of_user(self.plex, self.plex_user_id, user_id)
         if user_plex is None:
             return
@@ -168,6 +170,59 @@ class PlexAutoLanguages(object):
             return
         self.change_default_tracks_if_needed(user.name, item)
 
+    def process_timeline_message(self, message: dict):
+        for timeline in message["TimelineEntry"]:
+            try:
+                self.process_timeline(timeline)
+            except Exception:
+                logger.exception("Unable to process timeline")
+
+    def process_timeline(self, timeline: dict):
+        if "metadataState" in timeline or "mediaState" in timeline:
+            return
+        identifier = timeline["identifier"]
+        state = timeline["state"]
+        entry_type = timeline["type"]
+        if identifier != "com.plexapp.plugins.library" or state != 5 or entry_type == -1:
+            return
+        item_id = int(timeline["itemID"])
+
+        # Skip if not an Episode
+        item = self.plex.fetchItem(item_id)
+        if not isinstance(item, Episode):
+            return
+
+        # Check if the item has been added recently
+        if item.addedAt < datetime.now() - timedelta(minutes=2):
+            return
+
+        if item_id in self.newly_added and self.newly_added[item_id] == item.addedAt:
+            return
+        self.newly_added[item_id] = item.addedAt
+
+        # Change tracks for all users
+        logger.info(f"Processing newly added episode '{item.show().title}' (S{item.seasonNumber:02}E{item.episodeNumber:02})")
+        all_user_ids = [self.plex_user_id] + PlexUtils.get_all_user_ids(self.plex)
+        for user_id in all_user_ids:
+            # Switch to the user's Plex instance
+            user_plex = PlexUtils.get_plex_instance_of_user(self.plex, self.plex_user_id, user_id)
+            if user_plex is None:
+                continue
+
+            # Get the most recently watched episode or the first one of the show
+            user_item = user_plex.fetchItem(item_id)
+            reference = PlexUtils.get_last_watched_or_first_episode(user_plex, user_item.show())
+            if reference is None:
+                continue
+
+            # Change tracks
+            reference.reload()
+            user_item.reload()
+            user = PlexUtils.get_user_from_user_id(self.plex, user_id)
+            if user is None:
+                return
+            self.change_default_tracks_if_needed(user.name, reference, episodes=[user_item])
+
     def notify_changes(self, username: str, episode: Episode, episodes: List[Episode], nb_updated: int, nb_total: int):
         target_audio, target_subtitles = PlexUtils.get_selected_streams(episode)
         season_numbers = [e.seasonNumber for e in episodes]
@@ -199,11 +254,12 @@ class PlexAutoLanguages(object):
             episode.reload()
             self.change_default_tracks_if_needed(None, episode)
 
-    def change_default_tracks_if_needed(self, username: str, episode: Episode):
-        # Get episodes to update
-        update_level = self.config.get("update_level")
-        update_strategy = self.config.get("update_strategy")
-        episodes = PlexUtils.get_episodes_to_process(update_level, update_strategy, episode)
+    def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None):
+        if episodes is None:
+            # Get episodes to update
+            update_level = self.config.get("update_level")
+            update_strategy = self.config.get("update_strategy")
+            episodes = PlexUtils.get_episodes_to_process(update_level, update_strategy, episode)
 
         # Get changes to perform
         changes = PlexUtils.get_track_changes(episode, episodes)

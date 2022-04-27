@@ -1,7 +1,7 @@
 import itertools
 from typing import List, Union
-from plexapi.video import Episode
 from plexapi.server import PlexServer
+from plexapi.video import Episode, Show
 from plexapi.media import AudioStream, SubtitleStream
 
 from utils.logger import get_logger
@@ -11,6 +11,20 @@ logger = get_logger()
 
 
 class PlexUtils(object):
+
+    @staticmethod
+    def get_last_watched_or_first_episode(plex: PlexServer, show: Show):
+        watched_episodes = show.watched()
+        if len(watched_episodes) == 0:
+            all_episodes = show.episodes()
+            if len(all_episodes) == 0:
+                return None
+            return all_episodes[0]
+        return watched_episodes[-1]
+
+    @staticmethod
+    def get_all_user_ids(plex: PlexServer):
+        return [user.id for user in plex.myPlexAccount().users()]
 
     @staticmethod
     def get_plex_instance_of_user(plex: PlexServer, plex_user_id: int, user_id: Union[int, str]):

@@ -82,6 +82,9 @@ class PlexUtils(object):
 
     @staticmethod
     def match_audio_stream(reference: AudioStream, audio_streams: List[AudioStream]):
+        # The reference stream can be 'None'
+        if reference is None:
+            return None
         # We only want stream with the same language code
         streams = [s for s in audio_streams if s.languageCode == reference.languageCode]
         if len(streams) == 0:
@@ -133,7 +136,8 @@ class PlexUtils(object):
                 current_audio_stream, current_subtitle_stream = PlexUtils.get_selected_streams(part)
                 # Audio stream
                 matching_audio_stream = PlexUtils.match_audio_stream(selected_audio_stream, part.audioStreams())
-                if matching_audio_stream is not None and matching_audio_stream.id != current_audio_stream.id:
+                if current_audio_stream is not None and matching_audio_stream is not None and \
+                        matching_audio_stream.id != current_audio_stream.id:
                     changes.append((episode, part, AudioStream.STREAMTYPE, matching_audio_stream))
                 # Subtitle stream
                 matching_subtitle_stream = PlexUtils.match_subtitle_stream(selected_subtitle_stream, part.subtitleStreams())

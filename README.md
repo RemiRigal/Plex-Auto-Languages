@@ -118,7 +118,7 @@ plexautolanguages:
     schedule_time: "04:30"
 
   notifications:
-    # Whether of not to enable the notifications through Apprise, defaults to 'false'
+    # Whether or not to enable the notifications through Apprise, defaults to 'false'
     # A notification is sent whenever a language change is performed
     enable: true
     # An array of Apprise configurations, see Apprise docs for more information: https://github.com/caronc/apprise

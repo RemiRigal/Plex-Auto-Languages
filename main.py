@@ -261,8 +261,11 @@ class PlexAutoLanguages(object):
         min_date = datetime.now() - timedelta(days=1)
         history = self.plex.history(mindate=min_date)
         for episode in [media for media in history if isinstance(media, Episode)]:
+            user = PlexUtils.get_user_from_user_id(self.plex, episode.accountID)
+            if user is None:
+                continue
             episode.reload()
-            self.change_default_tracks_if_needed(None, episode)
+            self.change_default_tracks_if_needed(user.name, episode)
 
     def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None):
         logger.debug(f"[Language Update] "

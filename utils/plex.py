@@ -2,6 +2,7 @@ import itertools
 from typing import List, Union
 from plexapi.server import PlexServer
 from plexapi.video import Episode, Show
+from plexapi.exceptions import NotFound
 from plexapi.media import AudioStream, SubtitleStream
 
 from utils.logger import get_logger
@@ -25,6 +26,13 @@ class PlexUtils(object):
     @staticmethod
     def get_all_user_ids(plex: PlexServer):
         return [user.id for user in plex.myPlexAccount().users()]
+
+    @staticmethod
+    def fetch_item(plex: PlexServer, item_id: Union[int, str]):
+        try:
+            return plex.fetchItem(item_id)
+        except NotFound:
+            return None
 
     @staticmethod
     def get_plex_instance_of_user(plex: PlexServer, plex_user_id: int, user_id: Union[int, str]):

@@ -9,10 +9,10 @@ from plexapi.server import PlexServer
 from datetime import datetime, timedelta
 from plexapi.media import AudioStream, SubtitleStream
 
+from utils.plex import PlexUtils
 from utils.logger import init_logger
 from utils.scheduler import Scheduler
 from utils.configuration import Configuration
-from utils.plex import PlexUtils
 from utils.healthcheck import HealthcheckServer
 
 
@@ -109,8 +109,8 @@ class PlexAutoLanguages(object):
             return
 
         # Skip if not an Episode
-        item = user_plex.fetchItem(play_session["key"])
-        if not isinstance(item, Episode):
+        item = PlexUtils.fetch_item(user_plex, play_session["key"])
+        if item is None or not isinstance(item, Episode):
             return
 
         # Skip is the session state is unchanged
@@ -159,8 +159,8 @@ class PlexAutoLanguages(object):
             return
 
         # Skip if not an Episode
-        item = user_plex.fetchItem(media_key)
-        if not isinstance(item, Episode):
+        item = PlexUtils.fetch_item(user_plex, media_key)
+        if item is None or not isinstance(item, Episode):
             return
 
         # Change tracks if needed
@@ -188,8 +188,8 @@ class PlexAutoLanguages(object):
         item_id = int(timeline["itemID"])
 
         # Skip if not an Episode
-        item = self.plex.fetchItem(item_id)
-        if not isinstance(item, Episode):
+        item = PlexUtils.fetch_item(self.plex, item_id)
+        if item is None or not isinstance(item, Episode):
             return
 
         # Check if the item has been added recently

@@ -155,3 +155,9 @@ class PlexUtils(object):
                         (current_subtitle_stream is None or matching_subtitle_stream.id != current_subtitle_stream.id):
                     changes.append((episode, part, SubtitleStream.STREAMTYPE, matching_subtitle_stream))
         return changes
+
+    @staticmethod
+    def get_episode_short_name(episode: Episode, include_show: bool = True):
+        if include_show:
+            return f"'{episode.show().title}' (S{episode.seasonNumber:02}E{episode.episodeNumber:02})"
+        return f"S{episode.seasonNumber:02}E{episode.episodeNumber:02}"

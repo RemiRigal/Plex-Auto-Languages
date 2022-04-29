@@ -15,3 +15,5 @@ plexautolanguages:
   notifications:
     enable: false
     apprise_configs: []
+
+  debug: false

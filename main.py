@@ -1,5 +1,6 @@
 import sys
 import signal
+import logging
 import argparse
 from time import sleep
 from typing import List
@@ -25,6 +26,9 @@ class PlexAutoLanguages(object):
         self.healthcheck_server = HealthcheckServer("Plex-Auto-Languages", self.is_ready, self.is_healthy)
         self.healthcheck_server.start()
         self.config = Configuration(user_config_path)
+        if self.config.get("debug"):
+            logger.setLevel(logging.DEBUG)
+            logger.debug("Debug mode enabled")
         # Plex
         self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"))
         self.plex_user_id = self.get_plex_user_id()
@@ -95,6 +99,7 @@ class PlexAutoLanguages(object):
                 self.process_play_session(play_session)
             except Exception:
                 logger.exception("Unable to process play session")
+                logger.debug(message)
 
     def process_play_session(self, play_session: dict):
         # Get User id and user's Plex instance
@@ -118,10 +123,13 @@ class PlexAutoLanguages(object):
         session_state = play_session["state"]
         if session_key in self.session_states and self.session_states[session_key] == session_state:
             return
+        logger.debug(f"[Play Session] "
+                     f"Session: {session_key} | State: '{session_state}' | User id: {user_id} | Episode: {item}")
         self.session_states[session_key] = session_state
 
         # Reset cache if the session is stopped
         if session_state == "stopped":
+            logger.debug(f"[Play Session] End of session {session_key} for user {user_id}")
             del self.session_states[session_key]
             del self.user_clients[client_identifier]
 
@@ -142,6 +150,7 @@ class PlexAutoLanguages(object):
                 self.process_activity(activity)
             except Exception:
                 logger.exception("Unable to process activity")
+                logger.debug(message)
 
     def process_activity(self, activity: dict):
         event_state = activity["event"]
@@ -176,6 +185,7 @@ class PlexAutoLanguages(object):
                 self.process_timeline(timeline)
             except Exception:
                 logger.exception("Unable to process timeline")
+                logger.debug(message)
 
     def process_timeline(self, timeline: dict):
         if "metadataState" in timeline or "mediaState" in timeline:
@@ -201,7 +211,7 @@ class PlexAutoLanguages(object):
         self.newly_added[item_id] = item.addedAt
 
         # Change tracks for all users
-        logger.info(f"Processing newly added episode '{item.show().title}' (S{item.seasonNumber:02}E{item.episodeNumber:02})")
+        logger.info(f"Processing newly added episode {PlexUtils.get_episode_short_name(item)}")
         all_user_ids = [self.plex_user_id] + PlexUtils.get_all_user_ids(self.plex)
         for user_id in all_user_ids:
             # Switch to the user's Plex instance
@@ -255,6 +265,8 @@ class PlexAutoLanguages(object):
             self.change_default_tracks_if_needed(None, episode)
 
     def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None):
+        logger.debug(f"[Language Update] "
+                     f"Checking language update for show {episode.show()} and user '{username}' based on episode {episode}")
         if episodes is None:
             # Get episodes to update
             update_level = self.config.get("update_level")
@@ -264,10 +276,14 @@ class PlexAutoLanguages(object):
         # Get changes to perform
         changes = PlexUtils.get_track_changes(episode, episodes)
         if len(changes) == 0:
+            logger.debug(f"[Language Update] No changes to perform for show {episode.show()}")
             return
 
         # Perform changes
-        for _, part, stream_type, new_stream in changes:
+        logger.debug(f"[Language Update] Performing {len(changes)} change(s) for show {episode.show()}")
+        for e, part, stream_type, new_stream in changes:
+            stream_type_name = "audio" if stream_type == AudioStream.STREAMTYPE else "subtitle"
+            logger.debug(f"[Language Update] Updating {stream_type_name} stream of episode {e} to {new_stream}")
             if stream_type == AudioStream.STREAMTYPE:
                 part.setDefaultAudioStream(new_stream)
             elif stream_type == SubtitleStream.STREAMTYPE and new_stream is None:

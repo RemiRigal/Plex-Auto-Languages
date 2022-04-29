@@ -29,7 +29,6 @@ def init_logger():
     logger = logging.getLogger("Logger")
     logger.setLevel(logging.INFO)
     logger_stream_handler = logging.StreamHandler()
-    logger_stream_handler.setLevel(logging.INFO)
     logger_stream_handler.setFormatter(CustomFormatter())
     logger.addHandler(logger_stream_handler)
     return logger

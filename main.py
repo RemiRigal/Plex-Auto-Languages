@@ -220,7 +220,9 @@ class PlexAutoLanguages(object):
                 continue
 
             # Get the most recently watched episode or the first one of the show
-            user_item = user_plex.fetchItem(item_id)
+            user_item = PlexUtils.fetch_item(user_plex, item_id)
+            if user_item is None:
+                continue
             reference = PlexUtils.get_last_watched_or_first_episode(user_plex, user_item.show())
             if reference is None:
                 continue

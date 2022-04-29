@@ -17,7 +17,7 @@ class HealthcheckServer(Thread):
         self._is_healthy = is_healthy
         self._is_ready = is_ready
         self._app = Flask(name)
-        self._server = make_server("0.0.0.0", 80, self._app)
+        self._server = make_server("0.0.0.0", 9880, self._app)
         self._ctx = self._app.app_context()
         self._ctx.push()
 

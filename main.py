@@ -3,12 +3,13 @@ import signal
 import logging
 import argparse
 from time import sleep
-from typing import List
+from typing import List, Union
+from datetime import datetime, timedelta
 from apprise import Apprise
 from plexapi.video import Episode
 from plexapi.server import PlexServer
-from datetime import datetime, timedelta
 from plexapi.media import AudioStream, SubtitleStream
+from plexapi.library import ShowSection
 
 from utils.plex import PlexUtils
 from utils.logger import init_logger
@@ -91,8 +92,10 @@ class PlexAutoLanguages(object):
             self.process_playing_message(message)
         elif self.config.get("trigger_on_activity") and message["type"] == "activity":
             self.process_activity_message(message)
-        elif message["type"] == "timeline":
+        elif self.config.get("trigger_on_scan") and message["type"] == "timeline":
             self.process_timeline_message(message)
+        elif self.config.get("trigger_on_scan") and message["type"] == "status":
+            self.process_status_message(message)
 
     def process_playing_message(self, message: dict):
         for play_session in message["PlaySessionStateNotification"]:
@@ -212,13 +215,43 @@ class PlexAutoLanguages(object):
             return
 
         # Check if the item has been added recently
-        if item.addedAt < datetime.now() - timedelta(minutes=2) or \
-                (item_id in self.newly_added and self.newly_added[item_id] == item.addedAt):
+        if item.addedAt < datetime.now() - timedelta(minutes=5) or \
+                (item.key in self.newly_added and self.newly_added[item.key] == item.addedAt):
             return
-        self.newly_added[item_id] = item.addedAt
+        self.newly_added[item.key] = item.addedAt
 
         # Change tracks for all users
-        logger.info(f"Processing newly added episode {PlexUtils.get_episode_short_name(item)}")
+        logger.info(f"[Timeline] Processing newly added episode {PlexUtils.get_episode_short_name(item)}")
+        self.process_new_episode(item_id)
+
+    def process_status_message(self, message: dict):
+        for status in message["StatusNotification"]:
+            try:
+                self.process_status(status)
+            except Exception:
+                logger.exception("Unable to process status")
+                logger.debug(message)
+
+    def process_status(self, status: dict):
+        if status.get("title", None) != "Library scan complete":
+            return
+        logger.debug("[Status] Library scan complete")
+        for section in [s for s in self.plex.library.sections() if isinstance(s, ShowSection)]:
+            recent = section.searchEpisodes(filters={"addedAt>>": "5m"})
+            if len(recent) == 0:
+                continue
+            logger.debug(f"[Status] Found {len(recent)} newly added episode(s) in section {section}")
+            for item in recent:
+                # Check if the item has already been processed
+                if item.key in self.newly_added and self.newly_added[item.key] == item.addedAt:
+                    continue
+                self.newly_added[item.key] = item.addedAt
+
+                # Change tracks for all users
+                logger.info(f"[Status] Processing newly added episode {PlexUtils.get_episode_short_name(item)}")
+                self.process_new_episode(item.key)
+
+    def process_new_episode(self, item_id: Union[int, str]):
         all_user_ids = [self.plex_user_id] + PlexUtils.get_all_user_ids(self.plex)
         for user_id in all_user_ids:
             # Switch to the user's Plex instance

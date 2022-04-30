@@ -5,24 +5,24 @@ import argparse
 from time import sleep
 from typing import List, Union
 from datetime import datetime, timedelta
-from apprise import Apprise
 from plexapi.video import Episode
 from plexapi.server import PlexServer
 from plexapi.media import AudioStream, SubtitleStream
 from plexapi.library import ShowSection
 
 from utils.plex import PlexUtils
+from utils.notifier import Notifier
 from utils.logger import init_logger
 from utils.scheduler import Scheduler
 from utils.configuration import Configuration
 from utils.healthcheck import HealthcheckServer
 
 
-class PlexAutoLanguages(object):
+class PlexAutoLanguages():
 
     def __init__(self, user_config_path: str):
         self.alive = False
-        self.notifier = None
+        self.plex_alert_listener = None
         self.set_signal_handlers()
         self.healthcheck_server = HealthcheckServer("Plex-Auto-Languages", self.is_ready, self.is_healthy)
         self.healthcheck_server.start()
@@ -43,11 +43,9 @@ class PlexAutoLanguages(object):
         if self.config.get("scheduler.enable"):
             self.scheduler = Scheduler(self.config.get("scheduler.schedule_time"), self.scheduler_callback)
         # Notifications
-        self.apprise = None
+        self.notifier = None
         if self.config.get("notifications.enable"):
-            self.apprise = Apprise()
-            for apprise_config in self.config.get("notifications.apprise_configs"):
-                self.apprise.add(apprise_config)
+            self.notifier = Notifier(self.config.get("notifications.apprise_configs"))
 
     def get_plex_user_id(self):
         plex_username = self.plex.myPlexAccount().username
@@ -62,7 +60,7 @@ class PlexAutoLanguages(object):
         return self.alive
 
     def is_healthy(self):
-        return self.alive and self.notifier is not None and self.notifier.is_alive()
+        return self.alive and self.plex_alert_listener is not None and self.plex_alert_listener.is_alive()
 
     def set_signal_handlers(self):
         signal.signal(signal.SIGINT, self.stop)
@@ -74,12 +72,12 @@ class PlexAutoLanguages(object):
 
     def start(self):
         logger.info("Starting alert listener")
-        self.notifier = self.plex.startAlertListener(self.alert_listener_callback)
+        self.plex_alert_listener = self.plex.startAlertListener(self.alert_listener_callback)
         if self.scheduler:
             logger.info("Starting scheduler")
             self.scheduler.start()
         self.alive = True
-        while self.notifier.is_alive() and self.alive:
+        while self.plex_alert_listener.is_alive() and self.alive:
             sleep(1)
         if self.scheduler:
             logger.info("Stopping scheduler")
@@ -294,9 +292,9 @@ class PlexAutoLanguages(object):
         )
         inline_message = message.replace("\n", " | ")
         logger.info(f"Language update: {inline_message}")
-        if self.apprise is None:
+        if self.notifier is None:
             return
-        self.apprise.notify(title=title, body=message)
+        self.notifier.notify(username, title, message)
 
     def scheduler_callback(self):
         logger.info("Starting scheduler task")

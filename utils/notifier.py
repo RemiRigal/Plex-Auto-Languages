@@ -20,6 +20,7 @@ class Notifier(object):
                 targets = config.get("urls")
                 targets = [targets] if isinstance(targets, str) else targets
                 usernames = config.get("users", None)
+                usernames = [usernames] if isinstance(usernames, str) else usernames
                 self._add_urls(targets, usernames)
 
     def _add_urls(self, urls: List[str], usernames: List[str] = None):

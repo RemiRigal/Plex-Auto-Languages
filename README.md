@@ -130,8 +130,18 @@ plexautolanguages:
     enable: true
     # An array of Apprise configurations, see Apprise docs for more information: https://github.com/caronc/apprise
     apprise_configs:
+      # This URL will be notified of all changes
       - "discord://webhook_id/webhook_token"
-      - "gotify://hostname/token"
+      # These URLs will only be notified of language change for users "MyUser1" and "MyUser2"
+      - urls:
+          - "gotify://hostname/token"
+          - "pover://user@token"
+        users:
+          - "MyUser1"
+          - "MyUser2"
+      # This URL will only be notified of language change for user "MyUser3"
+      - urls: "tgram://bottoken/ChatID"
+        users: "MyUser3"
       - "..."
 
   # Whether or not to enable the debug mode, defaults to 'false'

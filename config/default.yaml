@@ -2,6 +2,7 @@ plexautolanguages:
   update_level: "show"
   update_strategy: "next"
   trigger_on_play: true
+  trigger_on_scan: true
   trigger_on_activity: false
 
   plex:

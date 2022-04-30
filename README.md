@@ -100,6 +100,10 @@ plexautolanguages:
   # Whether or not playing a file should trigger a language update, defaults to 'true'
   trigger_on_play: true
 
+  # Whether or not scanning the library for new files should trigger a language update, defaults to 'true'
+  # A newly added episode will be updated based on the most recently watched episode, or the first episode of the show if it has never been watched
+  trigger_on_scan: true
+
   # Whether or not navigating the Plex library should trigger a language update, defaults to 'false'
   # Only the Plex web client and the Plex for Windows app support this feature
   # Set this to 'true' only if you want to perform changes whenever the default track of an episode is updated, even when the episode is not played.

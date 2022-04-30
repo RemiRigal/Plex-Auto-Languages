@@ -32,10 +32,11 @@ class PlexAutoLanguages(object):
         # Plex
         self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"))
         self.plex_user_id = self.get_plex_user_id()
-        self.session_states = dict()    # session_key: session_state
-        self.default_streams = dict()   # item_key: (audio_stream_id, substitle_stream_id)
-        self.user_clients = dict()      # client_identifier: user_id
-        self.newly_added = dict()       # episode_id: added_at
+        self.session_states = {}        # session_key: session_state
+        self.default_streams = {}       # item_key: (audio_stream_id, substitle_stream_id)
+        self.user_clients = {}          # client_identifier: user_id
+        self.newly_added = {}           # episode_id: added_at
+        self.recent_activities = {}     # (user_id, item_id): timestamp
         # Scheduler
         self.scheduler = None
         if self.config.get("scheduler.enable"):
@@ -172,11 +173,19 @@ class PlexAutoLanguages(object):
         if item is None or not isinstance(item, Episode):
             return
 
+        # Skip if this item has already been seen in the last 5 seconds
+        activity_key = (user_id, media_key)
+        if activity_key in self.recent_activities and \
+                self.recent_activities[activity_key] < datetime.now() + timedelta(seconds=5):
+            return
+        self.recent_activities[activity_key] = datetime.now()
+
         # Change tracks if needed
         item.reload()
         user = PlexUtils.get_user_from_user_id(self.plex, user_id)
         if user is None:
             return
+        logger.debug(f"[Activity] User: {user.name} | Episode: {item}")
         self.change_default_tracks_if_needed(user.name, item)
 
     def process_timeline_message(self, message: dict):

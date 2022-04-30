@@ -11,11 +11,11 @@ from plexapi.media import AudioStream, SubtitleStream
 from plexapi.library import ShowSection
 
 from utils.plex import PlexUtils
-from utils.notifier import Notifier
 from utils.logger import init_logger
 from utils.scheduler import Scheduler
 from utils.configuration import Configuration
 from utils.healthcheck import HealthcheckServer
+from utils.notifier import Notifier, NotificationBuilder
 
 
 class PlexAutoLanguages():
@@ -275,25 +275,19 @@ class PlexAutoLanguages():
 
     def notify_changes(self, username: str, episode: Episode, episodes: List[Episode], nb_updated: int, nb_total: int):
         target_audio, target_subtitles = PlexUtils.get_selected_streams(episode)
-        season_numbers = [e.seasonNumber for e in episodes]
-        min_season_number, max_season_number = min(season_numbers), max(season_numbers)
-        min_episode_number = min([e.episodeNumber for e in episodes if e.seasonNumber == min_season_number])
-        max_episode_number = max([e.episodeNumber for e in episodes if e.seasonNumber == max_season_number])
-        from_str = f"S{min_season_number:02}E{min_episode_number:02}"
-        to_str = f"S{max_season_number:02}E{max_episode_number:02}"
-        range_str = f"{from_str} - {to_str}" if from_str != to_str else from_str
-        title = f"PlexAutoLanguages - {episode.show().title}"
-        message = (
-            f"Show: {episode.show().title}\n"
-            f"User: {username}\n"
-            f"Audio: {target_audio.displayTitle if target_audio is not None else 'None'}\n"
-            f"Subtitles: {target_subtitles.displayTitle if target_subtitles is not None else 'None'}\n"
-            f"Updated episodes: {nb_updated}/{nb_total} ({range_str})"
-        )
-        inline_message = message.replace("\n", " | ")
+        builder = NotificationBuilder()
+        builder.username(username)
+        builder.audio_stream(target_audio)
+        builder.subtitle_stream(target_subtitles)
+        builder.episode(episode)
+        builder.episodes(episodes)
+        builder.nb_updated(nb_updated)
+        builder.nb_total(nb_total)
+        _, inline_message = builder.build(True)
         logger.info(f"Language update: {inline_message}")
         if self.notifier is None:
             return
+        title, message = builder.build(False)
         self.notifier.notify(username, title, message)
 
     def scheduler_callback(self):

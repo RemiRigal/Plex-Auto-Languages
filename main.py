@@ -203,10 +203,8 @@ class PlexAutoLanguages(object):
             return
 
         # Check if the item has been added recently
-        if item.addedAt < datetime.now() - timedelta(minutes=2):
-            return
-
-        if item_id in self.newly_added and self.newly_added[item_id] == item.addedAt:
+        if item.addedAt < datetime.now() - timedelta(minutes=2) or \
+                (item_id in self.newly_added and self.newly_added[item_id] == item.addedAt):
             return
         self.newly_added[item_id] = item.addedAt
 
@@ -281,7 +279,7 @@ class PlexAutoLanguages(object):
         # Get changes to perform
         changes = PlexUtils.get_track_changes(episode, episodes)
         if len(changes) == 0:
-            logger.debug(f"[Language Update] No changes to perform for show {episode.show()}")
+            logger.debug(f"[Language Update] No changes to perform for show {episode.show()} and user '{username}'")
             return
 
         # Perform changes
@@ -300,12 +298,6 @@ class PlexAutoLanguages(object):
         nb_updated_episodes = len({e.key for e, _, _, _ in changes})
         nb_total_episodes = len(episodes)
         self.notify_changes(username, episode, episodes, nb_updated_episodes, nb_total_episodes)
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config_file", type=str, help="Config file path")
-    return parser.parse_args()
 
 
 if __name__ == "__main__":

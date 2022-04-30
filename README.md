@@ -101,6 +101,7 @@ plexautolanguages:
   trigger_on_play: true
 
   # Whether or not navigating the Plex library should trigger a language update, defaults to 'false'
+  # Only the Plex web client and the Plex for Windows app support this feature
   # Set this to 'true' only if you want to perform changes whenever the default track of an episode is updated, even when the episode is not played.
   # Setting this parameter to 'true' can result in higher resource usage.
   trigger_on_activity: false

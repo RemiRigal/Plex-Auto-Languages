@@ -233,7 +233,7 @@ class PlexAutoLanguages():
     def process_status(self, status: dict):
         if status.get("title", None) != "Library scan complete":
             return
-        logger.debug("[Status] Library scan complete")
+        logger.info("[Status] Library scan complete")
         for section in [s for s in self.plex.library.sections() if isinstance(s, ShowSection)]:
             recent = section.searchEpisodes(filters={"addedAt>>": "5m"})
             if len(recent) == 0:
@@ -271,7 +271,8 @@ class PlexAutoLanguages():
             user = PlexUtils.get_user_from_user_id(self.plex, user_id)
             if user is None:
                 return
-            self.change_default_tracks_if_needed(user.name, reference, episodes=[user_item])
+            self.change_default_tracks_if_needed(user.name, reference, episodes=[user_item], notify=False)
+        self.notify_new_episode(PlexUtils.fetch_item(self.plex, item_id))
 
     def notify_changes(self, username: str, episode: Episode, episodes: List[Episode], nb_updated: int, nb_total: int):
         target_audio, target_subtitles = PlexUtils.get_selected_streams(episode)
@@ -290,6 +291,18 @@ class PlexAutoLanguages():
         title, message = builder.build(False)
         self.notifier.notify(username, title, message)
 
+    def notify_new_episode(self, episode: Episode):
+        title = "PlexAutoLanguages - New episode"
+        message = (
+            f"Episode: {PlexUtils.get_episode_short_name(episode)}\n"
+            f"Updated language for all users"
+        )
+        inline_message = message.replace("\n", " | ")
+        logger.info(f"Language update for new episode: {inline_message}")
+        if self.notifier is None:
+            return
+        self.notifier.notify(None, title, message)
+
     def scheduler_callback(self):
         logger.info("Starting scheduler task")
         min_date = datetime.now() - timedelta(days=1)
@@ -301,7 +314,8 @@ class PlexAutoLanguages():
             episode.reload()
             self.change_default_tracks_if_needed(user.name, episode)
 
-    def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None):
+    def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None,
+                                        notify: bool = True):
         logger.debug(f"[Language Update] "
                      f"Checking language update for show {episode.show()} and user '{username}' based on episode {episode}")
         if episodes is None:
@@ -314,7 +328,7 @@ class PlexAutoLanguages():
         changes = PlexUtils.get_track_changes(episode, episodes)
         if len(changes) == 0:
             logger.debug(f"[Language Update] No changes to perform for show {episode.show()} and user '{username}'")
-            return
+            return False
 
         # Perform changes
         logger.debug(f"[Language Update] Performing {len(changes)} change(s) for show {episode.show()}")
@@ -331,7 +345,9 @@ class PlexAutoLanguages():
         # Notify changes
         nb_updated_episodes = len({e.key for e, _, _, _ in changes})
         nb_total_episodes = len(episodes)
-        self.notify_changes(username, episode, episodes, nb_updated_episodes, nb_total_episodes)
+        if notify:
+            self.notify_changes(username, episode, episodes, nb_updated_episodes, nb_total_episodes)
+        return True
 
 
 if __name__ == "__main__":

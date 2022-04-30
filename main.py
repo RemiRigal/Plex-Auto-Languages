@@ -5,7 +5,6 @@ import argparse
 from time import sleep
 from typing import List, Union
 from datetime import datetime, timedelta
-from apprise import Apprise
 from plexapi.video import Episode
 from plexapi.server import PlexServer
 from plexapi.media import AudioStream, SubtitleStream
@@ -16,13 +15,14 @@ from utils.logger import init_logger
 from utils.scheduler import Scheduler
 from utils.configuration import Configuration
 from utils.healthcheck import HealthcheckServer
+from utils.notifier import Notifier, NotificationBuilder
 
 
-class PlexAutoLanguages(object):
+class PlexAutoLanguages():
 
     def __init__(self, user_config_path: str):
         self.alive = False
-        self.notifier = None
+        self.plex_alert_listener = None
         self.set_signal_handlers()
         self.healthcheck_server = HealthcheckServer("Plex-Auto-Languages", self.is_ready, self.is_healthy)
         self.healthcheck_server.start()
@@ -43,11 +43,9 @@ class PlexAutoLanguages(object):
         if self.config.get("scheduler.enable"):
             self.scheduler = Scheduler(self.config.get("scheduler.schedule_time"), self.scheduler_callback)
         # Notifications
-        self.apprise = None
+        self.notifier = None
         if self.config.get("notifications.enable"):
-            self.apprise = Apprise()
-            for apprise_config in self.config.get("notifications.apprise_configs"):
-                self.apprise.add(apprise_config)
+            self.notifier = Notifier(self.config.get("notifications.apprise_configs"))
 
     def get_plex_user_id(self):
         plex_username = self.plex.myPlexAccount().username
@@ -62,7 +60,7 @@ class PlexAutoLanguages(object):
         return self.alive
 
     def is_healthy(self):
-        return self.alive and self.notifier is not None and self.notifier.is_alive()
+        return self.alive and self.plex_alert_listener is not None and self.plex_alert_listener.is_alive()
 
     def set_signal_handlers(self):
         signal.signal(signal.SIGINT, self.stop)
@@ -74,12 +72,12 @@ class PlexAutoLanguages(object):
 
     def start(self):
         logger.info("Starting alert listener")
-        self.notifier = self.plex.startAlertListener(self.alert_listener_callback)
+        self.plex_alert_listener = self.plex.startAlertListener(self.alert_listener_callback)
         if self.scheduler:
             logger.info("Starting scheduler")
             self.scheduler.start()
         self.alive = True
-        while self.notifier.is_alive() and self.alive:
+        while self.plex_alert_listener.is_alive() and self.alive:
             sleep(1)
         if self.scheduler:
             logger.info("Stopping scheduler")
@@ -235,7 +233,7 @@ class PlexAutoLanguages(object):
     def process_status(self, status: dict):
         if status.get("title", None) != "Library scan complete":
             return
-        logger.debug("[Status] Library scan complete")
+        logger.info("[Status] Library scan complete")
         for section in [s for s in self.plex.library.sections() if isinstance(s, ShowSection)]:
             recent = section.searchEpisodes(filters={"addedAt>>": "5m"})
             if len(recent) == 0:
@@ -273,30 +271,37 @@ class PlexAutoLanguages(object):
             user = PlexUtils.get_user_from_user_id(self.plex, user_id)
             if user is None:
                 return
-            self.change_default_tracks_if_needed(user.name, reference, episodes=[user_item])
+            self.change_default_tracks_if_needed(user.name, reference, episodes=[user_item], notify=False)
+        self.notify_new_episode(PlexUtils.fetch_item(self.plex, item_id))
 
     def notify_changes(self, username: str, episode: Episode, episodes: List[Episode], nb_updated: int, nb_total: int):
         target_audio, target_subtitles = PlexUtils.get_selected_streams(episode)
-        season_numbers = [e.seasonNumber for e in episodes]
-        min_season_number, max_season_number = min(season_numbers), max(season_numbers)
-        min_episode_number = min([e.episodeNumber for e in episodes if e.seasonNumber == min_season_number])
-        max_episode_number = max([e.episodeNumber for e in episodes if e.seasonNumber == max_season_number])
-        from_str = f"S{min_season_number:02}E{min_episode_number:02}"
-        to_str = f"S{max_season_number:02}E{max_episode_number:02}"
-        range_str = f"{from_str} - {to_str}" if from_str != to_str else from_str
-        title = f"PlexAutoLanguages - {episode.show().title}"
+        builder = NotificationBuilder()
+        builder.username(username)
+        builder.audio_stream(target_audio)
+        builder.subtitle_stream(target_subtitles)
+        builder.episode(episode)
+        builder.episodes(episodes)
+        builder.nb_updated(nb_updated)
+        builder.nb_total(nb_total)
+        _, inline_message = builder.build(True)
+        logger.info(f"Language update: {inline_message}")
+        if self.notifier is None:
+            return
+        title, message = builder.build(False)
+        self.notifier.notify(username, title, message)
+
+    def notify_new_episode(self, episode: Episode):
+        title = "PlexAutoLanguages - New episode"
         message = (
-            f"Show: {episode.show().title}\n"
-            f"User: {username}\n"
-            f"Audio: {target_audio.displayTitle if target_audio is not None else 'None'}\n"
-            f"Subtitles: {target_subtitles.displayTitle if target_subtitles is not None else 'None'}\n"
-            f"Updated episodes: {nb_updated}/{nb_total} ({range_str})"
+            f"Episode: {PlexUtils.get_episode_short_name(episode)}\n"
+            f"Updated language for all users"
         )
         inline_message = message.replace("\n", " | ")
-        logger.info(f"Language update: {inline_message}")
-        if self.apprise is None:
+        logger.info(f"Language update for new episode: {inline_message}")
+        if self.notifier is None:
             return
-        self.apprise.notify(title=title, body=message)
+        self.notifier.notify(None, title, message)
 
     def scheduler_callback(self):
         logger.info("Starting scheduler task")
@@ -309,7 +314,8 @@ class PlexAutoLanguages(object):
             episode.reload()
             self.change_default_tracks_if_needed(user.name, episode)
 
-    def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None):
+    def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None,
+                                        notify: bool = True):
         logger.debug(f"[Language Update] "
                      f"Checking language update for show {episode.show()} and user '{username}' based on episode {episode}")
         if episodes is None:
@@ -322,7 +328,7 @@ class PlexAutoLanguages(object):
         changes = PlexUtils.get_track_changes(episode, episodes)
         if len(changes) == 0:
             logger.debug(f"[Language Update] No changes to perform for show {episode.show()} and user '{username}'")
-            return
+            return False
 
         # Perform changes
         logger.debug(f"[Language Update] Performing {len(changes)} change(s) for show {episode.show()}")
@@ -339,7 +345,9 @@ class PlexAutoLanguages(object):
         # Notify changes
         nb_updated_episodes = len({e.key for e, _, _, _ in changes})
         nb_total_episodes = len(episodes)
-        self.notify_changes(username, episode, episodes, nb_updated_episodes, nb_total_episodes)
+        if notify:
+            self.notify_changes(username, episode, episodes, nb_updated_episodes, nb_total_episodes)
+        return True
 
 
 if __name__ == "__main__":

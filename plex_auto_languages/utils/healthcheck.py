@@ -1,8 +1,8 @@
 import json
 import logging
-from flask import Flask
 from typing import Callable
 from threading import Thread
+from flask import Flask
 from werkzeug.serving import make_server
 
 
@@ -13,7 +13,7 @@ flask_logger.setLevel(logging.ERROR)
 class HealthcheckServer(Thread):
 
     def __init__(self, name: str, is_ready: Callable, is_healthy: Callable):
-        super(HealthcheckServer, self).__init__()
+        super().__init__()
         self._is_healthy = is_healthy
         self._is_ready = is_ready
         self._app = Flask(name)

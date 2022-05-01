@@ -2,9 +2,10 @@ import os
 import re
 import sys
 import yaml
+import logging
 from collections.abc import Mapping
 
-from utils.logger import get_logger
+from plex_auto_languages.utils.logger import get_logger
 
 
 logger = get_logger()
@@ -30,13 +31,11 @@ def env_dict_update(d, var_name: str = ""):
     return d
 
 
-class Configuration(object):
-
-    TRIGGER_ON_PLAY = "onPlay"
-    TRIGGER_ON_ACTIVITY = "onActivity"
+class Configuration():
 
     def __init__(self, user_config_path: str):
-        default_config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "default.yaml")
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        default_config_path = os.path.join(root_dir, "config", "default.yaml")
         with open(default_config_path, "r") as stream:
             self._config = yaml.safe_load(stream).get("plexautolanguages", {})
         if user_config_path is not None and os.path.exists(user_config_path):
@@ -45,9 +44,9 @@ class Configuration(object):
         self._override_from_env()
         self._override_plex_token_from_secret()
         self._validate_config()
-        self._trigger_on_play = None
-        self._trigger_on_activity = None
-        self._trigger_on_schedule = None
+        if self.get("debug"):
+            logger.setLevel(logging.DEBUG)
+            logger.debug("Debug mode enabled")
 
     def get(self, parameter_path: str):
         return self._get(self._config, parameter_path)
@@ -57,20 +56,7 @@ class Configuration(object):
         if separator in parameter_path:
             splitted = parameter_path.split(separator)
             return self._get(config[splitted[0]], separator.join(splitted[1:]))
-        else:
-            return config[parameter_path]
-
-    @property
-    def trigger_on_play(self):
-        if self._trigger_on_play is None:
-            self._trigger_on_play = self.get("trigger_on_play")
-        return self._trigger_on_play
-
-    @property
-    def trigger_on_activity(self):
-        if self._trigger_on_activity is None:
-            self._trigger_on_activity = self.get("trigger_on_activity")
-        return self._trigger_on_activity
+        return config[parameter_path]
 
     def _override_from_config_file(self, user_config_path: str):
         with open(user_config_path, "r") as stream:

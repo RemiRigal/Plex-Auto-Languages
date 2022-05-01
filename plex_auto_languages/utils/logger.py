@@ -1,7 +1,7 @@
 import logging
 
 
-class CustomFormatter(object):
+class CustomFormatter():
 
     grey = "\x1b[38;21m"
     blue = "\x1b[38;5;39m"

@@ -7,7 +7,7 @@ from threading import Thread, Event
 class Scheduler(Thread):
 
     def __init__(self, time_of_day: str, callback: Callable):
-        super(Scheduler, self).__init__()
+        super().__init__()
         schedule.every().day.at(time_of_day).do(callback)
         self.stop_event = Event()
 

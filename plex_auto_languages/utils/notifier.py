@@ -2,7 +2,7 @@ from typing import List, Union
 from apprise import Apprise
 
 
-class Notifier(object):
+class Notifier():
 
     def __init__(self, configs: List[Union[str, dict]]):
         self._global_apprise = Apprise()
@@ -28,7 +28,10 @@ class Notifier(object):
             for url in urls:
                 user_apprise.add(url)
 
-    def notify(self, username: str, title: str, message: str):
+    def notify(self, title: str, message: str):
+        self._global_apprise.notify(title=title, body=message)
+
+    def notify_user(self, title: str, message: str, username: str):
         self._global_apprise.notify(title=title, body=message)
         if username is None or username not in self._user_apprise:
             return

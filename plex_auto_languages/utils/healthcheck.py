@@ -1,8 +1,8 @@
 import json
 import logging
-from flask import Flask
 from typing import Callable
 from threading import Thread
+from flask import Flask
 from werkzeug.serving import make_server
 
 

@@ -1,7 +1,7 @@
 import time
-import schedule
 from typing import Callable
 from threading import Thread, Event
+import schedule
 
 
 class Scheduler(Thread):

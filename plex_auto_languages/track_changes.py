@@ -106,11 +106,6 @@ class TrackChanges():
             f"Updated episodes: {nb_updated}/{nb_total} ({range_str})"
         )
 
-    def _get_selected_streams(self, episode: Union[Episode, MediaPart]):
-        audio_stream = ([a for a in episode.audioStreams() if a.selected] + [None])[0]
-        subtitle_stream = ([s for s in episode.subtitleStreams() if s.selected] + [None])[0]
-        return audio_stream, subtitle_stream
-
     def _match_audio_stream(self, audio_streams: List[AudioStream]):
         # The reference stream can be 'None'
         if self._audio_stream is None:
@@ -156,3 +151,9 @@ class TrackChanges():
                     self._subtitle_stream.title == stream.title:
                 scores[index] += 5
         return streams[scores.index(max(scores))]
+
+    @staticmethod
+    def _get_selected_streams(episode: Union[Episode, MediaPart]):
+        audio_stream = ([a for a in episode.audioStreams() if a.selected] + [None])[0]
+        subtitle_stream = ([s for s in episode.subtitleStreams() if s.selected] + [None])[0]
+        return audio_stream, subtitle_stream

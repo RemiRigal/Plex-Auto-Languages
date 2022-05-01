@@ -171,7 +171,7 @@ class PlexServer(UnprivilegedPlexServer):
         if self.notifier is None:
             return
         title = f"PlexAutoLanguages - {track_changes.reference_name}"
-        self.notifier.notify(track_changes.username, title, track_changes.description)
+        self.notifier.notify_user(title, track_changes.description, track_changes.username)
 
     def notify_new_episode(self, episode: Episode):
         title = "PlexAutoLanguages - New episode"
@@ -183,7 +183,7 @@ class PlexServer(UnprivilegedPlexServer):
         logger.info(f"Language update for new episode: {inline_message}")
         if self.notifier is None:
             return
-        self.notifier.notify(None, title, message)
+        self.notifier.notify(title, message)
 
     def get_all_show_sections(self):
         return [s for s in self._plex.library.sections() if isinstance(s, ShowSection)]
@@ -199,7 +199,7 @@ class PlexServer(UnprivilegedPlexServer):
             self.change_default_tracks_if_needed(user.name, episode)
 
 
-class PlexCache(object):
+class PlexCache():
 
     def __init__(self):
         self.session_states = {}     # session_key: session_state

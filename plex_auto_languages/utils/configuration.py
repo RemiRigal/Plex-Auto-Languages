@@ -1,9 +1,9 @@
 import os
 import re
 import sys
-import yaml
 import logging
 from collections.abc import Mapping
+import yaml
 
 from plex_auto_languages.utils.logger import get_logger
 
@@ -11,24 +11,24 @@ from plex_auto_languages.utils.logger import get_logger
 logger = get_logger()
 
 
-def deep_dict_update(d, u):
-    for k, v in u.items():
-        if isinstance(v, Mapping):
-            d[k] = deep_dict_update(d.get(k, {}), v)
+def deep_dict_update(original, update):
+    for key, value in update.items():
+        if isinstance(value, Mapping):
+            original[key] = deep_dict_update(original.get(key, {}), value)
         else:
-            d[k] = v
-    return d
+            original[key] = value
+    return original
 
 
-def env_dict_update(d, var_name: str = ""):
-    for k, v in d.items():
-        new_var_name = (f"{var_name}_{k}" if var_name != "" else k).upper()
-        if isinstance(v, Mapping):
-            d[k] = env_dict_update(d[k], new_var_name)
+def env_dict_update(original, var_name: str = ""):
+    for key, value in original.items():
+        new_var_name = (f"{var_name}_{key}" if var_name != "" else key).upper()
+        if isinstance(value, Mapping):
+            original[key] = env_dict_update(original[key], new_var_name)
         elif new_var_name in os.environ:
-            d[k] = yaml.safe_load(os.environ.get(new_var_name))
+            original[key] = yaml.safe_load(os.environ.get(new_var_name))
             logger.info(f"Setting value of parameter {new_var_name} from environment variable")
-    return d
+    return original
 
 
 class Configuration():
@@ -36,7 +36,7 @@ class Configuration():
     def __init__(self, user_config_path: str):
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         default_config_path = os.path.join(root_dir, "config", "default.yaml")
-        with open(default_config_path, "r") as stream:
+        with open(default_config_path, "r", encoding="utf-8") as stream:
             self._config = yaml.safe_load(stream).get("plexautolanguages", {})
         if user_config_path is not None and os.path.exists(user_config_path):
             logger.info(f"Parsing config file '{user_config_path}'")
@@ -59,7 +59,7 @@ class Configuration():
         return config[parameter_path]
 
     def _override_from_config_file(self, user_config_path: str):
-        with open(user_config_path, "r") as stream:
+        with open(user_config_path, "r", encoding="utf-8") as stream:
             user_config = yaml.safe_load(stream).get("plexautolanguages", {})
         self._config = deep_dict_update(self._config, user_config)
 
@@ -71,7 +71,7 @@ class Configuration():
         if not os.path.exists(plex_token_file_path):
             return
         logger.info("Getting PLEX_TOKEN from Docker secret")
-        with open(plex_token_file_path, "r") as stream:
+        with open(plex_token_file_path, "r", encoding="utf-8") as stream:
             plex_token = stream.readline().strip()
         self._config["plex"]["token"] = plex_token
 

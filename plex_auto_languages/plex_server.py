@@ -13,6 +13,7 @@ from plex_auto_languages.utils.configuration import Configuration
 from plex_auto_languages.plex_alert_handler import PlexAlertHandler
 from plex_auto_languages.track_changes import TrackChanges
 from plex_auto_languages.utils.notifier import Notifier
+from plex_auto_languages.plex_server_cache import PlexServerCache
 
 
 logger = get_logger()
@@ -24,11 +25,28 @@ class UnprivilegedPlexServer():
         self._plex_url = url
         self._plex = BasePlexServer(url, token)
 
+    @property
+    def unique_id(self):
+        return self._plex.machineIdentifier
+
     def fetch_item(self, item_id: Union[str, int]):
         try:
             return self._plex.fetchItem(item_id)
         except NotFound:
             return None
+
+    def episodes(self):
+        return self._plex.library.all(libtype="episode")
+
+    def get_recently_added_episodes(self, minutes: int):
+        episodes = []
+        for section in self.get_show_sections():
+            recent = section.searchEpisodes(filters={"addedAt>>": f"{minutes}m"})
+            episodes.extend(recent)
+        return episodes
+
+    def get_show_sections(self):
+        return [s for s in self._plex.library.sections() if isinstance(s, ShowSection)]
 
     @staticmethod
     def get_last_watched_or_first_episode(show: Show):
@@ -67,7 +85,7 @@ class PlexServer(UnprivilegedPlexServer):
             logger.info(f"Successfully connected as user '{self.username}' (id: {self.user_id})")
         self._alert_handler = None
         self._alert_listener = None
-        self.cache = PlexCache()
+        self.cache = PlexServerCache(self)
 
     @property
     def is_alive(self):
@@ -118,7 +136,7 @@ class PlexServer(UnprivilegedPlexServer):
             return None
         return matching_users[0]
 
-    def process_new_episode(self, item_id: Union[int, str]):
+    def process_new_or_updated_episode(self, item_id: Union[int, str]):
         for user_id in self.get_all_user_ids():
             # Switch to the user's Plex instance
             user_plex = self.get_plex_instance_of_user(user_id)
@@ -185,9 +203,6 @@ class PlexServer(UnprivilegedPlexServer):
             return
         self.notifier.notify(title, message)
 
-    def get_all_show_sections(self):
-        return [s for s in self._plex.library.sections() if isinstance(s, ShowSection)]
-
     def start_deep_analysis(self):
         min_date = datetime.now() - timedelta(days=1)
         history = self._plex.history(mindate=min_date)
@@ -197,13 +212,3 @@ class PlexServer(UnprivilegedPlexServer):
                 continue
             episode.reload()
             self.change_default_tracks_if_needed(user.name, episode)
-
-
-class PlexCache():
-
-    def __init__(self):
-        self.session_states = {}     # session_key: session_state
-        self.default_streams = {}    # item_key: (audio_stream_id, substitle_stream_id)
-        self.user_clients = {}       # client_identifier: user_id
-        self.newly_added = {}        # episode_id: added_at
-        self.recent_activities = {}  # (user_id, item_id): timestamp

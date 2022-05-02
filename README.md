@@ -6,8 +6,15 @@
 [![License](https://img.shields.io/github/license/RemiRigal/Plex-Auto-Languages?style=flat-square)](https://github.com/RemiRigal/Plex-Auto-Languages/blob/master/LICENSE)
 
 This application lets you have a Netflix-like experience by auto-updating the language of your Plex TV Show episodes based on the current language you are using without messing with your existing language preferences.  
-You want to watch Squid Game in korean with english subtitles ? Set the language for the first episode and don't think about it for the rest of the show.  
-You want to watch The Mandalorian in english but still want to watch Game of Thrones in french ? Don't worry, the language is set per TV Show and it won't interfere.
+
+**You want to watch Squid Game in korean with english subtitles ?**  
+Set the language for the first episode and don't think about it for the rest of the show. :heavy_check_mark:
+
+**You want to watch The Mandalorian in english but still want to watch Game of Thrones in french ?**  
+Don't worry, the language is set per TV Show and it won't interfere. :heavy_check_mark:
+
+**You have multiple managed and shared users with various preferences ?**  
+The proper tracks will be selected automatically and independently for all your users. :heavy_check_mark:
 
 
 ## Getting Started

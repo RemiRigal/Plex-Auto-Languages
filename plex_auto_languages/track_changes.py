@@ -89,6 +89,9 @@ class TrackChanges():
             (self._reference.seasonNumber == episode.seasonNumber and self._reference.episodeNumber < episode.episodeNumber)
 
     def _update_description(self, episodes: List[Episode]):
+        if len(episodes) == 0:
+            self._description = ""
+            return
         season_numbers = [e.seasonNumber for e in episodes]
         min_season_number, max_season_number = min(season_numbers), max(season_numbers)
         min_episode_number = min([e.episodeNumber for e in episodes if e.seasonNumber == min_season_number])

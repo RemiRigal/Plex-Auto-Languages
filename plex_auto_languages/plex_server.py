@@ -136,7 +136,7 @@ class PlexServer(UnprivilegedPlexServer):
             return None
         return matching_users[0]
 
-    def process_new_or_updated_episode(self, item_id: Union[int, str]):
+    def process_new_or_updated_episode(self, item_id: Union[int, str], new: bool = True):
         for user_id in self.get_all_user_ids():
             # Switch to the user's Plex instance
             user_plex = self.get_plex_instance_of_user(user_id)
@@ -158,7 +158,7 @@ class PlexServer(UnprivilegedPlexServer):
             if user is None:
                 return
             self.change_default_tracks_if_needed(user.name, reference, episodes=[user_item], notify=False)
-        self.notify_new_episode(self.fetch_item(item_id))
+        self.notify_updated_or_new_episode(self.fetch_item(item_id), new)
 
     def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None,
                                         notify: bool = True):
@@ -191,8 +191,8 @@ class PlexServer(UnprivilegedPlexServer):
         title = f"PlexAutoLanguages - {track_changes.reference_name}"
         self.notifier.notify_user(title, track_changes.description, track_changes.username)
 
-    def notify_new_episode(self, episode: Episode):
-        title = "PlexAutoLanguages - New episode"
+    def notify_updated_or_new_episode(self, episode: Episode, new: bool):
+        title = f"PlexAutoLanguages - {'New' if new else 'Updated'} episode"
         message = (
             f"Episode: {self.get_episode_short_name(episode)}\n"
             f"Updated language for all users"

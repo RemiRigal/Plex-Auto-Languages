@@ -45,4 +45,4 @@ class PlexStatus(PlexAlert):
             for item in updated:
                 # Change tracks for all users
                 logger.info(f"[Status] Processing updated episode {plex.get_episode_short_name(item)}")
-                plex.process_new_or_updated_episode(item.key)
+                plex.process_new_or_updated_episode(item.key, new=False)

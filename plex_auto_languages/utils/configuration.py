@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import pathlib
 import logging
 from collections.abc import Mapping
 import yaml
@@ -31,6 +32,27 @@ def env_dict_update(original, var_name: str = ""):
     return original
 
 
+def is_docker():
+    path = "/proc/self/cgroup"
+    return (
+        os.path.exists("/.dockerenv") or
+        os.path.isfile(path) and any("docker" in line for line in open(path, "r", encoding="utf-8"))
+    )
+
+
+def get_data_directory(app_name: str):
+    home = pathlib.Path.home()
+    if is_docker():
+        return "/config"
+    if sys.platform == "win32":
+        return str(home / f"AppData/Roaming/{app_name}")
+    if sys.platform == "linux":
+        return str(home / f".local/share/{app_name}")
+    if sys.platform == "darwin":
+        return str(home / f"Library/Application Support/{app_name}")
+    return None
+
+
 class Configuration():
 
     def __init__(self, user_config_path: str):
@@ -44,6 +66,7 @@ class Configuration():
         self._override_from_env()
         self._override_plex_token_from_secret()
         self._validate_config()
+        self._add_system_config()
         if self.get("debug"):
             logger.setLevel(logging.DEBUG)
             logger.debug("Debug mode enabled")
@@ -95,3 +118,9 @@ class Configuration():
             logger.error("To enable notifications, the field 'apprise_configs' is required")
             sys.exit(0)
         logger.info("The provided configuration has been successfully validated")
+
+    def _add_system_config(self):
+        self._config["docker"] = is_docker()
+        self._config["data_dir"] = get_data_directory("PlexAutoLanguages")
+        if not os.path.exists(self._config["data_dir"]):
+            os.makedirs(self._config["data_dir"])

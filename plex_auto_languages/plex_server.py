@@ -37,12 +37,12 @@ class UnprivilegedPlexServer():
             return None
 
     def episodes(self):
-        return self._plex.library.all(libtype="episode")
+        return self._plex.library.all(libtype="episode", container_size=1024)
 
     def get_recently_added_episodes(self, minutes: int):
         episodes = []
         for section in self.get_show_sections():
-            recent = section.searchEpisodes(filters={"addedAt>>": f"{minutes}m"})
+            recent = section.searchEpisodes(sort="addedAt:desc", filters={"addedAt>>": f"{minutes}m"})
             episodes.extend(recent)
         return episodes
 
@@ -98,6 +98,9 @@ class PlexServer(UnprivilegedPlexServer):
             if account.name == plex_username:
                 return account.id, account.name
         return None, None
+
+    def save_cache(self):
+        self.cache.save()
 
     def start_alert_listener(self):
         trigger_on_play = self.config.get("trigger_on_play")
@@ -200,3 +203,16 @@ class PlexServer(UnprivilegedPlexServer):
                 continue
             episode.reload()
             self.change_tracks(user.name, episode, EventType.SCHEDULER)
+
+        # Scan library
+        added, updated = self.cache.refresh_library_cache()
+        for item in added:
+            if not self.cache.should_process_recently_added(item.key, item.addedAt):
+                continue
+            logger.info(f"[Scheduler] Processing newly added episode {self.get_episode_short_name(item)}")
+            self.process_new_or_updated_episode(item.key, EventType.SCHEDULER)
+        for item in updated:
+            if not self.cache.should_process_recently_updated(item.key):
+                continue
+            logger.info(f"[Scheduler] Processing updated episode {self.get_episode_short_name(item)}")
+            self.process_new_or_updated_episode(item.key, EventType.SCHEDULER)

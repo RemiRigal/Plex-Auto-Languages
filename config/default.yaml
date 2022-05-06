@@ -4,6 +4,7 @@ plexautolanguages:
   trigger_on_play: true
   trigger_on_scan: true
   trigger_on_activity: false
+  refresh_library_on_scan: true
 
   plex:
     url: ""

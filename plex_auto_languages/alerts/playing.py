@@ -4,6 +4,7 @@ from plexapi.video import Episode
 
 from plex_auto_languages.alerts.base import PlexAlert
 from plex_auto_languages.utils.logger import get_logger
+from plex_auto_languages.constants import EventType
 
 if TYPE_CHECKING:
     from plex_auto_languages.plex_server import PlexServer
@@ -73,4 +74,4 @@ class PlexPlaying(PlexAlert):
         plex.cache.default_streams.setdefault(item.key, pair_id)
 
         # Change tracks if needed
-        plex.change_default_tracks_if_needed(username, item)
+        plex.change_tracks(username, item, EventType.PLAY_OR_ACTIVITY)

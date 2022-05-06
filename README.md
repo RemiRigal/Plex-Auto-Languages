@@ -136,8 +136,13 @@ plexautolanguages:
     # A notification is sent whenever a language change is performed
     enable: true
     # An array of Apprise configurations, see Apprise docs for more information: https://github.com/caronc/apprise
+    # The array 'users' can be specified in order to link notification URLs with specific users
+    #   Defaults to all users if not present
+    # The array 'events' can be specified in order to get notifications only for specific events
+    #   Valid event values: "play_or_activity" "new_episode" "updated_episode" "scheduler"
+    #   Defaults to all events if not present
     apprise_configs:
-      # This URL will be notified of all changes
+      # This URL will be notified of all changes during all events
       - "discord://webhook_id/webhook_token"
       # These URLs will only be notified of language change for users "MyUser1" and "MyUser2"
       - urls:
@@ -146,9 +151,18 @@ plexautolanguages:
         users:
           - "MyUser1"
           - "MyUser2"
-      # This URL will only be notified of language change for user "MyUser3"
-      - urls: "tgram://bottoken/ChatID"
-        users: "MyUser3"
+      # This URL will only be notified of language change for user "MyUser3" during play or activity events
+      - urls:
+          - "tgram://bottoken/ChatID"
+        users:
+          - "MyUser3"
+        events:
+          - "play_or_activity"
+      # This URL will be notified of language change during scheduler tasks only
+      - urls:
+          - "gotify://hostname/token"
+        events:
+          - "scheduler"
       - "..."
 
   # Whether or not to enable the debug mode, defaults to 'false'

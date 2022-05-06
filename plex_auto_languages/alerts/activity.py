@@ -5,6 +5,7 @@ from plexapi.video import Episode
 
 from plex_auto_languages.alerts.base import PlexAlert
 from plex_auto_languages.utils.logger import get_logger
+from plex_auto_languages.constants import EventType
 
 if TYPE_CHECKING:
     from plex_auto_languages.plex_server import PlexServer
@@ -70,4 +71,4 @@ class PlexActivity(PlexAlert):
         if user is None:
             return
         logger.debug(f"[Activity] User: {user.name} | Episode: {item}")
-        plex.change_default_tracks_if_needed(user.name, item)
+        plex.change_tracks(user.name, item, EventType.PLAY_OR_ACTIVITY)

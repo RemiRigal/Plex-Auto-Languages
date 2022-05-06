@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 from plex_auto_languages.alerts.base import PlexAlert
 from plex_auto_languages.utils.logger import get_logger
+from plex_auto_languages.constants import EventType
 
 if TYPE_CHECKING:
     from plex_auto_languages.plex_server import PlexServer
@@ -37,7 +38,7 @@ class PlexStatus(PlexAlert):
 
                 # Change tracks for all users
                 logger.info(f"[Status] Processing newly added episode {plex.get_episode_short_name(item)}")
-                plex.process_new_or_updated_episode(item.key)
+                plex.process_new_or_updated_episode(item.key, EventType.NEW_EPISODE)
 
         # Process updated episodes
         if len(updated) > 0:
@@ -45,4 +46,4 @@ class PlexStatus(PlexAlert):
             for item in updated:
                 # Change tracks for all users
                 logger.info(f"[Status] Processing updated episode {plex.get_episode_short_name(item)}")
-                plex.process_new_or_updated_episode(item.key, new=False)
+                plex.process_new_or_updated_episode(item.key, EventType.UPDATED_EPISODE)

@@ -23,27 +23,34 @@ class PlexStatus(PlexAlert):
     def process(self, plex: PlexServer):
         if self.title != "Library scan complete":
             return
-        logger.info("[Status] Library scan complete")
+        logger.debug("[Status] The Plex server scanned the library")
 
-        added, updated = plex.cache.refresh_library_cache()
+        if plex.config.get("refresh_library_on_scan"):
+            added, updated = plex.cache.refresh_library_cache()
+        else:
+            added = plex.get_recently_added_episodes(minutes=5)
+            updated = []
 
         # Process recently added episodes
         if len(added) > 0:
             logger.debug(f"[Status] Found {len(added)} newly added episode(s)")
             for item in added:
                 # Check if the item has already been processed
-                if item.key in plex.cache.newly_added and plex.cache.newly_added[item.key] == item.addedAt:
+                if not plex.cache.should_process_recently_added(item.key, item.addedAt):
                     continue
-                plex.cache.newly_added[item.key] = item.addedAt
 
                 # Change tracks for all users
                 logger.info(f"[Status] Processing newly added episode {plex.get_episode_short_name(item)}")
-                plex.process_new_or_updated_episode(item.key, EventType.NEW_EPISODE)
+                plex.process_new_or_updated_episode(item.key, EventType.NEW_EPISODE, True)
 
         # Process updated episodes
         if len(updated) > 0:
             logger.debug(f"[Status] Found {len(updated)} updated episode(s)")
             for item in updated:
+                # Check if the item has already been processed
+                if not plex.cache.should_process_recently_updated(item.key):
+                    continue
+
                 # Change tracks for all users
                 logger.info(f"[Status] Processing updated episode {plex.get_episode_short_name(item)}")
-                plex.process_new_or_updated_episode(item.key, EventType.UPDATED_EPISODE)
+                plex.process_new_or_updated_episode(item.key, EventType.UPDATED_EPISODE, False)

@@ -54,11 +54,13 @@ class PlexTimeline(PlexAlert):
             return
 
         # Check if the item has been added recently
-        if item.addedAt < datetime.now() - timedelta(minutes=5) or \
-                (item.key in plex.cache.newly_added and plex.cache.newly_added[item.key] == item.addedAt):
+        if item.addedAt < datetime.now() - timedelta(minutes=5):
             return
-        plex.cache.newly_added[item.key] = item.addedAt
+
+        # Check if the item has already been processed
+        if not plex.cache.should_process_recently_added(item.key, item.addedAt):
+            return
 
         # Change tracks for all users
         logger.info(f"[Timeline] Processing newly added episode {plex.get_episode_short_name(item)}")
-        plex.process_new_or_updated_episode(self.item_id, EventType.NEW_EPISODE)
+        plex.process_new_or_updated_episode(self.item_id, EventType.NEW_EPISODE, True)

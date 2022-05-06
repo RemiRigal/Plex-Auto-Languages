@@ -40,11 +40,13 @@ services:
       - PLEX_URL=http://plex:32400
       - PLEX_TOKEN=MY_PLEX_TOKEN
       - TZ=Europe/Paris
+    volumes:
+      - ./config:/config
 ```
 
 ### Docker compose advanced configuration
 
-Here is an example of a docker-compose configuration that uses a YAML configuration file, see [Configuration](#configuration) for more information:
+Here is an example of a docker-compose configuration that uses a YAML configuration file `config.yaml` inside a `config` directory, see [Configuration](#configuration) for more information:
 ```yaml
 version: "3"
 services:
@@ -54,7 +56,8 @@ services:
     environment:
       - TZ=Europe/Paris
     volumes:
-      - ./config.yaml:/config/config.yaml
+      # make sure you have a file named 'config.yaml' in the 'config' dir
+      - ./config:/config
     restart: unless-stopped
 ```
 
@@ -116,6 +119,11 @@ plexautolanguages:
   # Set this to 'true' only if you want to perform changes whenever the default track of an episode is updated, even when the episode is not played.
   # Setting this parameter to 'true' can result in higher resource usage.
   trigger_on_activity: false
+
+  # Whether or not to refresh the cached library whenever the Plex server scans its own library, defaults to 'true'
+  # Disabling this parameter will prevent PlexAutoLanguages from detecting updated files for an already existing episode
+  # It is recommended to disable this parameter if you have a large TV Show library (10k+ episodes)
+  refresh_library_on_scan: true
 
   # Plex configuration
   plex:

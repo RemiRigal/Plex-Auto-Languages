@@ -15,7 +15,6 @@ class PlexAutoLanguages():
     def __init__(self, user_config_path: str):
         self.alive = False
         self.plex_alert_listener = None
-        self.set_signal_handlers()
 
         # Health-check server
         self.healthcheck_server = HealthcheckServer("Plex-Auto-Languages", self.is_ready, self.is_healthy)
@@ -36,6 +35,8 @@ class PlexAutoLanguages():
         self.scheduler = None
         if self.config.get("scheduler.enable"):
             self.scheduler = Scheduler(self.config.get("scheduler.schedule_time"), self.scheduler_callback)
+
+        self.set_signal_handlers()
 
     def is_ready(self):
         return self.alive
@@ -60,6 +61,7 @@ class PlexAutoLanguages():
         self.alive = True
         while self.is_healthy():
             sleep(1)
+        self.plex.save_cache()
         if self.scheduler:
             logger.info("Stopping scheduler")
             self.scheduler.stop_event.set()

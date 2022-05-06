@@ -23,7 +23,7 @@ class PlexStatus(PlexAlert):
     def process(self, plex: PlexServer):
         if self.title != "Library scan complete":
             return
-        logger.info("[Status] The Plex server scanned the library")
+        logger.debug("[Status] The Plex server scanned the library")
 
         if plex.config.get("refresh_library_on_scan"):
             added, updated = plex.cache.refresh_library_cache()

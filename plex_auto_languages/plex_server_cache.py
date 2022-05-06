@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from dateutil.parser import isoparse
 
 from plex_auto_languages.utils.logger import get_logger
+from plex_auto_languages.utils.json import DateTimeEncoder
 
 if TYPE_CHECKING:
     from plex_auto_languages.plex_server import PlexServer
@@ -17,6 +18,7 @@ logger = get_logger()
 class PlexServerCache():
 
     def __init__(self, plex: PlexServer):
+        self._encoder = DateTimeEncoder()
         self._plex = plex
         self._cache_file_path = self._get_cache_file_path()
         self._last_refresh = datetime.fromtimestamp(0)
@@ -80,7 +82,9 @@ class PlexServerCache():
         with open(self._cache_file_path, "r", encoding="utf-8") as stream:
             cache = json.load(stream)
         self.newly_updated = cache.get("newly_updated", self.newly_updated)
+        self.newly_updated = {key: isoparse(value) for key, value in self.newly_updated.items()}
         self.newly_added = cache.get("newly_added", self.newly_added)
+        self.newly_added = {key: isoparse(value) for key, value in self.newly_added.items()}
         self.episode_parts = cache.get("episode_parts", )
         self._last_refresh = isoparse(cache.get("last_refresh", self._last_refresh))
         return True
@@ -91,7 +95,7 @@ class PlexServerCache():
             "newly_updated": self.newly_updated,
             "newly_added": self.newly_added,
             "episode_parts": self.episode_parts,
-            "last_refresh": self._last_refresh.isoformat()
+            "last_refresh": self._last_refresh
         }
         with open(self._cache_file_path, "w", encoding="utf-8") as stream:
-            json.dump(cache, stream)
+            stream.write(self._encoder.encode(cache))

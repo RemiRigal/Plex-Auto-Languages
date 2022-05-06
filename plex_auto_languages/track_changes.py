@@ -93,7 +93,8 @@ class TrackChanges():
 
     def apply(self):
         if not self.has_changes:
-            logger.debug(f"[Language Update] No changes to perform for episode {self._reference} and user '{self.username}'")
+            logger.debug(f"[Language Update] No changes to perform for show "
+                         f"{self._reference.show()} and user '{self.username}'")
             return
         logger.debug(f"[Language Update] Performing {len(self._changes)} change(s) for show {self._reference.show()}")
         for episode, part, stream_type, new_stream in self._changes:

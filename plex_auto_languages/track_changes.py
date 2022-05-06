@@ -3,6 +3,7 @@ from plexapi.video import Episode
 from plexapi.media import AudioStream, SubtitleStream, MediaPart
 
 from plex_auto_languages.utils.logger import get_logger
+from plex_auto_languages.constants import EventType
 
 
 logger = get_logger()
@@ -10,12 +11,23 @@ logger = get_logger()
 
 class TrackChanges():
 
-    def __init__(self, username: str, reference: Episode):
+    def __init__(self, username: str, reference: Episode, event_type: EventType):
         self._reference = reference
         self._username = username
+        self._event_type = event_type
         self._audio_stream, self._subtitle_stream = self._get_selected_streams(reference)
         self._changes = []
         self._description = ""
+        self._title = ""
+        self._computed = False
+
+    @property
+    def computed(self):
+        return self._computed
+
+    @property
+    def event_type(self):
+        return self._event_type
 
     @property
     def description(self):
@@ -26,8 +38,12 @@ class TrackChanges():
         return self._description.replace("\n", " | ")
 
     @property
+    def title(self):
+        return self._title
+
+    @property
     def reference_name(self):
-        return f"'{self._reference.show().title}' (S{self._reference.seasonNumber:02}E{self._reference.episodeNumber:02})"
+        return f"{self._reference.show().title} (S{self._reference.seasonNumber:02}E{self._reference.episodeNumber:02})"
 
     @property
     def has_changes(self):
@@ -53,6 +69,8 @@ class TrackChanges():
         return episodes
 
     def compute(self, episodes: List[Episode]):
+        logger.debug(f"[Language Update] Checking language update for show "
+                     f"{self._reference.show()} and user '{self._username}' based on episode {self._reference}")
         self._changes = []
         for episode in episodes:
             episode.reload()
@@ -71,8 +89,12 @@ class TrackChanges():
                         (current_subtitle_stream is None or matching_subtitle_stream.id != current_subtitle_stream.id):
                     self._changes.append((episode, part, SubtitleStream.STREAMTYPE, matching_subtitle_stream))
         self._update_description(episodes)
+        self._computed = True
 
     def apply(self):
+        if not self.has_changes:
+            logger.debug(f"[Language Update] No changes to perform for episode {self._reference} and user '{self.username}'")
+            return
         logger.debug(f"[Language Update] Performing {len(self._changes)} change(s) for show {self._reference.show()}")
         for episode, part, stream_type, new_stream in self._changes:
             stream_type_name = "audio" if stream_type == AudioStream.STREAMTYPE else "subtitle"
@@ -90,6 +112,7 @@ class TrackChanges():
 
     def _update_description(self, episodes: List[Episode]):
         if len(episodes) == 0:
+            self._title = ""
             self._description = ""
             return
         season_numbers = [e.seasonNumber for e in episodes]
@@ -101,6 +124,7 @@ class TrackChanges():
         range_str = f"{from_str} - {to_str}" if from_str != to_str else from_str
         nb_updated = len({e.key for e, _, _, _ in self._changes})
         nb_total = len(episodes)
+        self._title = self._reference.show().title
         self._description = (
             f"Show: {self._reference.show().title}\n"
             f"User: {self._username}\n"
@@ -160,3 +184,61 @@ class TrackChanges():
         audio_stream = ([a for a in episode.audioStreams() if a.selected] + [None])[0]
         subtitle_stream = ([s for s in episode.subtitleStreams() if s.selected] + [None])[0]
         return audio_stream, subtitle_stream
+
+
+class NewOrUpdatedTrackChanges():
+
+    def __init__(self, event_type: EventType):
+        self._episode = None
+        self._event_type = event_type
+        self._track_changes = []
+        self._description = ""
+        self._title = ""
+
+    @property
+    def episode_name(self):
+        if self._episode is None:
+            return ""
+        return f"{self._episode.show().title} (S{self._episode.seasonNumber:02}E{self._episode.episodeNumber:02})"
+
+    @property
+    def event_type(self):
+        return self._event_type
+
+    @property
+    def description(self):
+        return self._description
+
+    @property
+    def inline_description(self):
+        return self._description.replace("\n", " | ")
+
+    @property
+    def title(self):
+        return self._title
+
+    @property
+    def has_changes(self):
+        return sum([1 for tc in self._track_changes if tc.has_changes]) > 0
+
+    def change_track_for_user(self, username: str, reference: Episode, episode: Episode):
+        self._episode = episode
+        track_changes = TrackChanges(username, reference, self._event_type)
+        track_changes.compute([episode])
+        track_changes.apply()
+        self._track_changes.append(track_changes)
+        self._update_description()
+
+    def _update_description(self):
+        if len(self._track_changes) == 0:
+            self._title = ""
+            self._description = ""
+            self._episode = None
+            return
+        event_str = "New" if self._event_type == EventType.NEW_EPISODE else "Updated"
+        self._title = f"{event_str}: {self.episode_name}"
+        self._description = (
+            f"Episode: {self.episode_name}\n"
+            f"Status: {event_str} episode\n"
+            f"Updated for all users"
+        )

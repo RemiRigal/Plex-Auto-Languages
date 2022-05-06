@@ -5,6 +5,7 @@ from plexapi.video import Episode
 
 from plex_auto_languages.alerts.base import PlexAlert
 from plex_auto_languages.utils.logger import get_logger
+from plex_auto_languages.constants import EventType
 
 if TYPE_CHECKING:
     from plex_auto_languages.plex_server import PlexServer
@@ -60,4 +61,4 @@ class PlexTimeline(PlexAlert):
 
         # Change tracks for all users
         logger.info(f"[Timeline] Processing newly added episode {plex.get_episode_short_name(item)}")
-        plex.process_new_or_updated_episode(self.item_id)
+        plex.process_new_or_updated_episode(self.item_id, EventType.NEW_EPISODE)

@@ -1,6 +1,6 @@
 import sys
 import itertools
-from typing import List, Union
+from typing import Union
 from datetime import datetime, timedelta
 from plexapi.media import MediaPart
 from plexapi.library import ShowSection
@@ -11,9 +11,10 @@ from plexapi.server import PlexServer as BasePlexServer
 from plex_auto_languages.utils.logger import get_logger
 from plex_auto_languages.utils.configuration import Configuration
 from plex_auto_languages.plex_alert_handler import PlexAlertHandler
-from plex_auto_languages.track_changes import TrackChanges
+from plex_auto_languages.track_changes import TrackChanges, NewOrUpdatedTrackChanges
 from plex_auto_languages.utils.notifier import Notifier
 from plex_auto_languages.plex_server_cache import PlexServerCache
+from plex_auto_languages.constants import EventType
 
 
 logger = get_logger()
@@ -136,7 +137,8 @@ class PlexServer(UnprivilegedPlexServer):
             return None
         return matching_users[0]
 
-    def process_new_or_updated_episode(self, item_id: Union[int, str], new: bool = True):
+    def process_new_or_updated_episode(self, item_id: Union[int, str], event_type: EventType):
+        track_changes = NewOrUpdatedTrackChanges(event_type)
         for user_id in self.get_all_user_ids():
             # Switch to the user's Plex instance
             user_plex = self.get_plex_instance_of_user(user_id)
@@ -157,53 +159,39 @@ class PlexServer(UnprivilegedPlexServer):
             user = self.get_user_by_id(user_id)
             if user is None:
                 return
-            self.change_default_tracks_if_needed(user.name, reference, episodes=[user_item], notify=False)
-        self.notify_updated_or_new_episode(self.fetch_item(item_id), new)
+            track_changes.change_track_for_user(user.name, reference, user_item)
 
-    def change_default_tracks_if_needed(self, username: str, episode: Episode, episodes: List[Episode] = None,
-                                        notify: bool = True):
-        track_changes = TrackChanges(username, episode)
-        logger.debug(f"[Language Update] "
-                     f"Checking language update for show {episode.show()} and user '{username}' based on episode {episode}")
-        if episodes is None:
-            # Get episodes to update
-            episodes = track_changes.get_episodes_to_update(
-                self.config.get("update_level"), self.config.get("update_strategy"))
+        # Notify changes
+        if track_changes.has_changes:
+            self.notify_changes(track_changes)
+
+    def change_tracks(self, username: str, episode: Episode, event_type: EventType):
+        track_changes = TrackChanges(username, episode, event_type)
+        # Get episodes to update
+        episodes = track_changes.get_episodes_to_update(self.config.get("update_level"), self.config.get("update_strategy"))
 
         # Get changes to perform
         track_changes.compute(episodes)
-        if not track_changes.has_changes:
-            logger.debug(f"[Language Update] No changes to perform for show {episode.show()} and user '{username}'")
-            return False
 
         # Perform changes
         track_changes.apply()
 
         # Notify changes
-        if notify:
+        if track_changes.has_changes:
             self.notify_changes(track_changes)
-        return True
 
-    def notify_changes(self, track_changes: TrackChanges):
+    def notify_changes(self, track_changes: Union[TrackChanges, NewOrUpdatedTrackChanges]):
         logger.info(f"Language update: {track_changes.inline_description}")
         if self.notifier is None:
             return
-        title = f"PlexAutoLanguages - {track_changes.reference_name}"
-        self.notifier.notify_user(title, track_changes.description, track_changes.username)
-
-    def notify_updated_or_new_episode(self, episode: Episode, new: bool):
-        title = f"PlexAutoLanguages - {'New' if new else 'Updated'} episode"
-        message = (
-            f"Episode: {self.get_episode_short_name(episode)}\n"
-            f"Updated language for all users"
-        )
-        inline_message = message.replace("\n", " | ")
-        logger.info(f"Language update for new episode: {inline_message}")
-        if self.notifier is None:
-            return
-        self.notifier.notify(title, message)
+        title = f"PlexAutoLanguages - {track_changes.title}"
+        if isinstance(track_changes, TrackChanges):
+            self.notifier.notify_user(title, track_changes.description, track_changes.username, track_changes.event_type)
+        else:
+            self.notifier.notify(title, track_changes.description, track_changes.event_type)
 
     def start_deep_analysis(self):
+        # History
         min_date = datetime.now() - timedelta(days=1)
         history = self._plex.history(mindate=min_date)
         for episode in [media for media in history if isinstance(media, Episode)]:
@@ -211,4 +199,4 @@ class PlexServer(UnprivilegedPlexServer):
             if user is None:
                 continue
             episode.reload()
-            self.change_default_tracks_if_needed(user.name, episode)
+            self.change_tracks(user.name, episode, EventType.SCHEDULER)

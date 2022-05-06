@@ -63,4 +63,4 @@ class PlexTimeline(PlexAlert):
 
         # Change tracks for all users
         logger.info(f"[Timeline] Processing newly added episode {plex.get_episode_short_name(item)}")
-        plex.process_new_or_updated_episode(self.item_id, EventType.NEW_EPISODE)
+        plex.process_new_or_updated_episode(self.item_id, EventType.NEW_EPISODE, True)

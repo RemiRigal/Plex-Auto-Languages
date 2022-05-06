@@ -189,9 +189,10 @@ class TrackChanges():
 
 class NewOrUpdatedTrackChanges():
 
-    def __init__(self, event_type: EventType):
+    def __init__(self, event_type: EventType, new: bool):
         self._episode = None
         self._event_type = event_type
+        self._new = new
         self._track_changes = []
         self._description = ""
         self._title = ""
@@ -236,7 +237,7 @@ class NewOrUpdatedTrackChanges():
             self._description = ""
             self._episode = None
             return
-        event_str = "New" if self._event_type == EventType.NEW_EPISODE else "Updated"
+        event_str = "New" if self._new else "Updated"
         self._title = f"{event_str}: {self.episode_name}"
         self._description = (
             f"Episode: {self.episode_name}\n"

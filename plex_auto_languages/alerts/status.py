@@ -41,7 +41,7 @@ class PlexStatus(PlexAlert):
 
                 # Change tracks for all users
                 logger.info(f"[Status] Processing newly added episode {plex.get_episode_short_name(item)}")
-                plex.process_new_or_updated_episode(item.key, EventType.NEW_EPISODE)
+                plex.process_new_or_updated_episode(item.key, EventType.NEW_EPISODE, True)
 
         # Process updated episodes
         if len(updated) > 0:
@@ -53,4 +53,4 @@ class PlexStatus(PlexAlert):
 
                 # Change tracks for all users
                 logger.info(f"[Status] Processing updated episode {plex.get_episode_short_name(item)}")
-                plex.process_new_or_updated_episode(item.key, EventType.UPDATED_EPISODE)
+                plex.process_new_or_updated_episode(item.key, EventType.UPDATED_EPISODE, False)

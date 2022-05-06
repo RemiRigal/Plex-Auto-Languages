@@ -140,8 +140,8 @@ class PlexServer(UnprivilegedPlexServer):
             return None
         return matching_users[0]
 
-    def process_new_or_updated_episode(self, item_id: Union[int, str], event_type: EventType):
-        track_changes = NewOrUpdatedTrackChanges(event_type)
+    def process_new_or_updated_episode(self, item_id: Union[int, str], event_type: EventType, new: bool):
+        track_changes = NewOrUpdatedTrackChanges(event_type, new)
         for user_id in self.get_all_user_ids():
             # Switch to the user's Plex instance
             user_plex = self.get_plex_instance_of_user(user_id)
@@ -210,9 +210,9 @@ class PlexServer(UnprivilegedPlexServer):
             if not self.cache.should_process_recently_added(item.key, item.addedAt):
                 continue
             logger.info(f"[Scheduler] Processing newly added episode {self.get_episode_short_name(item)}")
-            self.process_new_or_updated_episode(item.key, EventType.SCHEDULER)
+            self.process_new_or_updated_episode(item.key, EventType.SCHEDULER, True)
         for item in updated:
             if not self.cache.should_process_recently_updated(item.key):
                 continue
             logger.info(f"[Scheduler] Processing updated episode {self.get_episode_short_name(item)}")
-            self.process_new_or_updated_episode(item.key, EventType.SCHEDULER)
+            self.process_new_or_updated_episode(item.key, EventType.SCHEDULER, False)

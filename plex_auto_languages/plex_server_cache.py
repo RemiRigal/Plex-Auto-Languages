@@ -33,7 +33,8 @@ class PlexServerCache():
         self.episode_parts = {}
         # Initialization
         if not self._load():
-            logger.info("Scanning all episodes from the library, this action can take a few seconds")
+            logger.info("Scanning all episodes from the Plex library, this action should only take a few seconds "
+                        "but can take several minutes for larger libraries")
             self.refresh_library_cache()
             logger.info(f"Scanned {len(self.episode_parts)} episodes from the library")
 

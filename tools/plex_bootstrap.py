@@ -105,11 +105,12 @@ def setup_tv_shows(root_path):
     expected_media_count = 0
     for show_name, seasons in tv_shows.items():
         os.makedirs(os.path.join(root_path, show_name), exist_ok=True)
-        for season_id, episodes in enumerate(seasons, start=1):
-            for episode_id in episodes:
+        season_ids, episode_ids = seasons
+        for season_id in season_ids:
+            for episode_id in episode_ids:
                 expected_media_count += 1
                 episode_path = os.path.join(
-                    root_path, show_name, "%sS%02dE%02d.mp4" % (show_name.replace(" ", "."), season_id, episode_id)
+                    root_path, show_name, "%sS%02dE%02d.mkv" % (show_name.replace(" ", "."), season_id, episode_id)
                 )
                 if not os.path.isfile(episode_path):
                     copyfile(STUB_VIDEO_PATH, episode_path)

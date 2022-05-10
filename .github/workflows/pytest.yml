@@ -26,11 +26,7 @@ jobs:
       matrix:
         python-version: [3.8]
         plex: ['claimed']
-        is-master:
-          - ${{ github.ref == 'refs/heads/master' }}
-        exclude:
-          - is-master: false
-            plex: claimed
+    
     steps:
     - name: Check out code from Github
       uses: actions/checkout@v3

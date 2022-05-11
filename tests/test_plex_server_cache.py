@@ -2,7 +2,7 @@ from datetime import datetime
 
 
 def test_episode_parts(plex):
-    assert len(plex.cache.episode_parts) == 40
+    assert len(plex.cache.episode_parts) == 46
 
 
 def test_should_process_recently_added(plex):

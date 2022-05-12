@@ -8,7 +8,7 @@ from subprocess import call
 from uuid import uuid4
 
 import plexapi
-from plexapi.exceptions import BadRequest, NotFound
+from plexapi.exceptions import BadRequest
 from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 from plexapi.utils import SEARCHTYPES
@@ -404,15 +404,9 @@ if __name__ == "__main__": # noqa
         for section in sections:
             create_section(server, section, opts)
 
-    # Share this instance with the specified username
+    # Create a home user
     if account:
-        shared_username = os.environ.get("SHARED_USERNAME", "PKKid")
-        try:
-            user = account.user(shared_username)
-            account.updateFriend(user, server)
-            print("The server was shared with user %s" % shared_username)
-        except NotFound:
-            pass
+        account.createHomeUser("HomeUser", server)
 
     # Finished: Display our Plex details
     print("Base URL is %s" % server.url("", False))

@@ -85,7 +85,7 @@ jobs:
         . venv/bin/activate
         pip install -U pip
         pip install -r requirements.txt
-        pip install pytest
+        pip install -r tests/requirements.txt
 
     - name: Get PMS Docker image digest
       id: docker-digest

@@ -7,6 +7,7 @@ from collections.abc import Mapping
 import yaml
 
 from plex_auto_languages.utils.logger import get_logger
+from plex_auto_languages.exceptions import InvalidConfiguration
 
 
 logger = get_logger()
@@ -101,22 +102,19 @@ class Configuration():
     def _validate_config(self):
         if self.get("plex.url") == "":
             logger.error("A Plex URL is required")
-            sys.exit(0)
+            raise InvalidConfiguration
         if self.get("plex.token") == "":
             logger.error("A Plex Token is required")
-            sys.exit(0)
+            raise InvalidConfiguration
         if self.get("update_level") not in ["show", "season"]:
             logger.error("The 'update_level' parameter must be either 'show' or 'season'")
-            sys.exit(0)
+            raise InvalidConfiguration
         if self.get("update_strategy") not in ["all", "next"]:
             logger.error("The 'update_strategy' parameter must be either 'all' or 'next'")
-            sys.exit(0)
+            raise InvalidConfiguration
         if self.get("scheduler.enable") and not re.match(r"^\d{2}:\d{2}$", self.get("scheduler.schedule_time")):
             logger.error("A valid 'schedule_time' parameter with the format 'HH:MM' is required (ex: 02:30)")
-            sys.exit(0)
-        if self.get("notifications.enable") and "apprise_configs" not in self.get("notifications"):
-            logger.error("To enable notifications, the field 'apprise_configs' is required")
-            sys.exit(0)
+            raise InvalidConfiguration
         logger.info("The provided configuration has been successfully validated")
 
     def _add_system_config(self):

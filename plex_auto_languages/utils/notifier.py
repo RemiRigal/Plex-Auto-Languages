@@ -45,14 +45,14 @@ class Notifier():
                 user_apprise.add_event_types(event_types)
 
     def notify(self, title: str, message: str, event_type: EventType):
-        self._global_apprise.notifiy_if_needed(title, message, event_type)
+        self._global_apprise.notify_if_needed(title, message, event_type)
 
     def notify_user(self, title: str, message: str, username: str, event_type: EventType):
-        self._global_apprise.notifiy_if_needed(title, message, event_type)
+        self._global_apprise.notify_if_needed(title, message, event_type)
         if username is None or username not in self._user_apprise:
             return
         user_apprise = self._user_apprise[username]
-        user_apprise.notifiy_if_needed(title, message, event_type)
+        user_apprise.notify_if_needed(title, message, event_type)
 
 
 class ConditionalApprise(Apprise):
@@ -68,7 +68,7 @@ class ConditionalApprise(Apprise):
         for event_type in event_types:
             self.add_event_type(event_type)
 
-    def notifiy_if_needed(self, title: str, body: str, event_type: EventType):
+    def notify_if_needed(self, title: str, body: str, event_type: EventType):
         if len(self._event_types) != 0 and event_type not in self._event_types:
             return
         self.notify(title=title, body=body)

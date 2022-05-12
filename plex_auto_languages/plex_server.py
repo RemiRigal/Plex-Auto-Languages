@@ -1,4 +1,3 @@
-import sys
 import itertools
 from typing import Union
 from datetime import datetime, timedelta
@@ -15,6 +14,7 @@ from plex_auto_languages.track_changes import TrackChanges, NewOrUpdatedTrackCha
 from plex_auto_languages.utils.notifier import Notifier
 from plex_auto_languages.plex_server_cache import PlexServerCache
 from plex_auto_languages.constants import EventType
+from plex_auto_languages.exceptions import UserNotFound
 
 
 logger = get_logger()
@@ -81,7 +81,7 @@ class PlexServer(UnprivilegedPlexServer):
         self.user_id, self.username = self._get_user_id()
         if self.user_id is None:
             logger.error("Unable to find the user associated with the provided Plex Token")
-            sys.exit(0)
+            raise UserNotFound
         else:
             logger.info(f"Successfully connected as user '{self.username}' (id: {self.user_id})")
         self._alert_handler = None

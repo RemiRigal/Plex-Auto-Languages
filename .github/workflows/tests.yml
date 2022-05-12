@@ -153,9 +153,9 @@ jobs:
           -c copy -map 0:v:0 -map 1:a:0 -map 1:a:0 \
           -map 2:s:0 -map 2:s:0 \
           -metadata:s:a:0 language=eng \
-          -metadata:s:a:1 language=fre \
+          -metadata:s:a:1 language=fra \
           -metadata:s:s:0 language=eng \
-          -metadata:s:s:1 language=fre \
+          -metadata:s:s:1 language=fra \
           -metadata:s:s:1 forced=true \
           ~/.cache/data/test.mkv
 
@@ -177,6 +177,8 @@ jobs:
           -rxXs \
           --tb=native \
           --verbose \
+          --cov=plex_auto_languages \
+          --cov-report term-missing \
           tests
 
     - name: Unlink PMS from MyPlex account

@@ -26,4 +26,6 @@ def plex(config):
 
 @pytest.fixture()
 def episode(plex):
-    return plex.episodes()[0]
+    episode = plex.episodes()[0]
+    print("Episode: %s" % episode)
+    return episode

@@ -406,6 +406,7 @@ if __name__ == "__main__": # noqa
 
     # Create a home user
     if account:
+        print("Creating home user 'HomeUser'")
         account.createHomeUser("HomeUser", server)
 
     # Finished: Display our Plex details
@@ -413,3 +414,5 @@ if __name__ == "__main__": # noqa
     if account and opts.show_token:
         print("Auth token is %s" % account.authenticationToken)
     print("Server %s is ready to use!" % opts.server_name)
+
+    time.sleep(10)

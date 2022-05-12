@@ -1,7 +1,7 @@
 import math
 import pytest
 from datetime import datetime
-from unittest.mock import patch, call
+from unittest.mock import patch
 from plexapi.video import Episode, Show
 from plexapi.server import PlexServer as BasePlexServer
 

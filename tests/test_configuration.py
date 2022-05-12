@@ -1,6 +1,7 @@
 import os
 import sys
 import yaml
+import shutil
 import pytest
 import logging
 import tempfile
@@ -12,19 +13,13 @@ from plex_auto_languages.utils.configuration import deep_dict_update, env_dict_u
 from plex_auto_languages.utils.configuration import logger
 
 
-def fake_is_docker():
-    return False
-
-
 def test_is_docker():
-    assert is_docker() is True
+    assert isinstance(is_docker(), bool)
 
 
 def test_get_data_directory():
-    assert get_data_directory("test") == "/config"
-
     initial_platform = sys.platform
-    with patch("plex_auto_languages.utils.configuration.is_docker", wraps=fake_is_docker):
+    with patch("plex_auto_languages.utils.configuration.is_docker", return_value=False):
         sys.platform = "win32"
         assert get_data_directory("test") == os.path.expanduser("~/AppData/Roaming/test")
 
@@ -36,6 +31,19 @@ def test_get_data_directory():
 
         sys.platform = "unknown_platform"
         assert get_data_directory("test") is None
+
+    with patch("plex_auto_languages.utils.configuration.is_docker", return_value=True):
+        sys.platform = "win32"
+        assert get_data_directory("test") == "/config"
+
+        sys.platform = "linux"
+        assert get_data_directory("test") == "/config"
+
+        sys.platform = "darwin"
+        assert get_data_directory("test") == "/config"
+
+        sys.platform = "unknown_platform"
+        assert get_data_directory("test") == "/config"
     sys.platform = initial_platform
 
 
@@ -165,10 +173,10 @@ def test_configuration_unvalidated():
 
 
 def test_configuration_data_dir():
-    with patch("plex_auto_languages.utils.configuration.is_docker", wraps=fake_is_docker):
+    with patch("plex_auto_languages.utils.configuration.is_docker", return_value=False):
         data_dir = get_data_directory("PlexAutoLanguages")
         if os.path.exists(data_dir):
-            os.rmdir(data_dir)
+            shutil.rmtree(data_dir)
 
         os.environ["PLEX_URL"] = "http://localhost:32400"
         os.environ["PLEX_TOKEN"] = "token"

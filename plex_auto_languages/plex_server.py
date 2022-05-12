@@ -109,13 +109,21 @@ class PlexServer(UnprivilegedPlexServer):
         self._alert_handler = PlexAlertHandler(self, trigger_on_play, trigger_on_scan, trigger_on_activity)
         self._alert_listener = self._plex.startAlertListener(self._alert_handler)
 
+    def get_instance_users(self):
+        users = []
+        for user in self._plex.myPlexAccount().users():
+            server_identifiers = [share.machineIdentifier for share in user.servers]
+            if self.unique_id in server_identifiers:
+                users.append(user)
+        return users
+
     def get_all_user_ids(self):
-        return [self.user_id] + [user.id for user in self._plex.myPlexAccount().users()]
+        return [self.user_id] + [user.id for user in self.get_instance_users()]
 
     def get_plex_instance_of_user(self, user_id: Union[int, str]):
         if str(self.user_id) == str(user_id):
             return self
-        matching_users = [u for u in self._plex.myPlexAccount().users() if str(u.id) == str(user_id)]
+        matching_users = [u for u in self.get_instance_users() if str(u.id) == str(user_id)]
         if len(matching_users) == 0:
             logger.error(f"Unable to find user with id '{user_id}'")
             return None
@@ -135,7 +143,7 @@ class PlexServer(UnprivilegedPlexServer):
         return (user.id, user.name)
 
     def get_user_by_id(self, user_id: Union[int, str]):
-        matching_users = [u for u in self._plex.systemAccounts() if str(u.id) == str(user_id)]
+        matching_users = [u for u in self.get_instance_users() if str(u.id) == str(user_id)]
         if len(matching_users) == 0:
             return None
         return matching_users[0]

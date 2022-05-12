@@ -61,7 +61,7 @@ DOCKER_CMD = [
 ]
 
 
-STUB_VIDEO_PATH = os.path.expanduser("~/.cache/data/empty.mkv")
+STUB_VIDEO_PATH = os.path.expanduser("~/.cache/data/all.mkv")
 
 
 def check_ext(path, ext):

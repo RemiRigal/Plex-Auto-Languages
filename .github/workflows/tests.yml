@@ -157,7 +157,7 @@ jobs:
           -metadata:s:s:0 language=eng \
           -metadata:s:s:1 language=fra \
           -metadata:s:s:1 forced=true \
-          ~/.cache/data/test.mkv
+          ~/.cache/data/all.mkv
 
     - name: Bootstrap ${{ matrix.plex }} Plex server
       run: |

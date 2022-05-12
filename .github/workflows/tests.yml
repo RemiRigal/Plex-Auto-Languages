@@ -135,7 +135,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/data
-        key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-fake-data
+        key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-fake-media
 
     - name: Create fake media
       if: steps.cache-data.outputs.cache-hit != 'true'

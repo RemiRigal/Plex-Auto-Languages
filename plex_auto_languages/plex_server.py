@@ -1,10 +1,13 @@
+import time
 import itertools
-from typing import Union
+from typing import Union, Callable
 from datetime import datetime, timedelta
+from requests import ConnectionError as RequestsConnectionError
 from plexapi.media import MediaPart
 from plexapi.library import ShowSection
 from plexapi.video import Episode, Show
-from plexapi.exceptions import NotFound
+from plexapi.alert import AlertListener
+from plexapi.exceptions import NotFound, Unauthorized, BadRequest
 from plexapi.server import PlexServer as BasePlexServer
 
 from plex_auto_languages.utils.logger import get_logger
@@ -24,11 +27,28 @@ class UnprivilegedPlexServer():
 
     def __init__(self, url: str, token: str):
         self._plex_url = url
-        self._plex = BasePlexServer(url, token)
+        self._plex = self._get_server(url, token)
+
+    @property
+    def connected(self):
+        if self._plex is None:
+            return False
+        try:
+            _ = self._plex.library.sections()
+            return True
+        except (BadRequest, RequestsConnectionError):
+            return False
 
     @property
     def unique_id(self):
         return self._plex.machineIdentifier
+
+    @staticmethod
+    def _get_server(url, token):
+        try:
+            return BasePlexServer(url, token)
+        except (RequestsConnectionError, Unauthorized):
+            return None
 
     def fetch_item(self, item_id: Union[str, int]):
         try:
@@ -82,8 +102,7 @@ class PlexServer(UnprivilegedPlexServer):
         if self._user is None:
             logger.error("Unable to find the user associated with the provided Plex Token")
             raise UserNotFound
-        else:
-            logger.info(f"Successfully connected as user '{self.username}' (id: {self.user_id})")
+        logger.info(f"Successfully connected as user '{self.username}' (id: {self.user_id})")
         self._alert_handler = None
         self._alert_listener = None
         self.cache = PlexServerCache(self)
@@ -98,7 +117,19 @@ class PlexServer(UnprivilegedPlexServer):
 
     @property
     def is_alive(self):
-        return self._alert_listener is not None and self._alert_listener.is_alive()
+        return self.connected and self._alert_listener is not None and self._alert_listener.is_alive()
+
+    @staticmethod
+    def _get_server(url: str, token: str, max_tries: int = 5000):
+        for _ in range(max_tries):
+            try:
+                return BasePlexServer(url, token)
+            except RequestsConnectionError:
+                logger.warning("ConnectionError: Unable to connect to Plex server, retrying...")
+            except Unauthorized:
+                logger.warning("Unauthorized: make sure your credentials are correct. Retrying to connect to Plex server...")
+            time.sleep(5)
+        return None
 
     def _get_logged_user(self):
         plex_username = self._plex.myPlexAccount().username
@@ -110,12 +141,14 @@ class PlexServer(UnprivilegedPlexServer):
     def save_cache(self):
         self.cache.save()
 
-    def start_alert_listener(self):
+    def start_alert_listener(self, error_callback: Callable):
         trigger_on_play = self.config.get("trigger_on_play")
         trigger_on_scan = self.config.get("trigger_on_scan")
         trigger_on_activity = self.config.get("trigger_on_activity")
         self._alert_handler = PlexAlertHandler(self, trigger_on_play, trigger_on_scan, trigger_on_activity)
-        self._alert_listener = self._plex.startAlertListener(self._alert_handler)
+        self._alert_listener = AlertListener(self._plex, self._alert_handler, error_callback)
+        logger.info("Starting alert listener")
+        self._alert_listener.start()
 
     def get_instance_users(self):
         users = []
@@ -137,7 +170,11 @@ class PlexServer(UnprivilegedPlexServer):
             logger.error(f"Unable to find user with id '{user_id}'")
             return None
         user_token = matching_users[0].get_token(self._plex.machineIdentifier)
-        return UnprivilegedPlexServer(self._plex_url, user_token)
+        user_plex = UnprivilegedPlexServer(self._plex_url, user_token)
+        if not user_plex.connected:
+            logger.error(f"Connection to the Plex server failed for user '{matching_users[0].name}'")
+            return None
+        return user_plex
 
     def get_user_from_client_identifier(self, client_identifier: str):
         plex_sessions = self._plex.sessions()

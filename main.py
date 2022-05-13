@@ -1,6 +1,7 @@
 import signal
 import argparse
 from time import sleep
+from websocket import WebSocketConnectionClosedException
 
 from plex_auto_languages.plex_server import PlexServer
 from plex_auto_languages.utils.notifier import Notifier
@@ -14,6 +15,8 @@ class PlexAutoLanguages():
 
     def __init__(self, user_config_path: str):
         self.alive = False
+        self.must_stop = False
+        self.stop_signal = False
         self.plex_alert_listener = None
 
         # Health-check server
@@ -28,15 +31,18 @@ class PlexAutoLanguages():
         if self.config.get("notifications.enable"):
             self.notifier = Notifier(self.config.get("notifications.apprise_configs"))
 
-        # Plex
-        self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"), self.notifier, self.config)
-
         # Scheduler
         self.scheduler = None
         if self.config.get("scheduler.enable"):
             self.scheduler = Scheduler(self.config.get("scheduler.schedule_time"), self.scheduler_callback)
 
+        # Plex
+        self.plex = None
+
         self.set_signal_handlers()
+
+    def init(self):
+        self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"), self.notifier, self.config)
 
     def is_ready(self):
         return self.alive
@@ -50,25 +56,45 @@ class PlexAutoLanguages():
 
     def stop(self, *_):
         logger.info("Received SIGINT or SIGTERM, stopping gracefully")
-        self.alive = False
+        self.must_stop = True
+        self.stop_signal = True
 
     def start(self):
-        logger.info("Starting alert listener")
-        self.plex.start_alert_listener()
         if self.scheduler:
-            logger.info("Starting scheduler")
             self.scheduler.start()
-        self.alive = True
-        while self.is_healthy():
-            sleep(1)
-        self.plex.save_cache()
+
+        while not self.stop_signal:
+            self.must_stop = False
+            self.init()
+            self.plex.start_alert_listener(self.alert_listener_error_callback)
+            self.alive = True
+            count = 0
+            while not self.must_stop:
+                sleep(1)
+                count += 1
+                if count % 60 == 0 and not self.plex.is_alive:
+                    logger.warning("Lost connection to the Plex server")
+                    self.must_stop = True
+            self.alive = False
+            self.plex.save_cache()
+            if not self.stop_signal:
+                logger.info("Trying to restore the connection to the Plex server...")
+
         if self.scheduler:
-            logger.info("Stopping scheduler")
             self.scheduler.shutdown()
-        logger.info("Stopping alert listener")
+            self.scheduler.join()
         self.healthcheck_server.shutdown()
 
+    def alert_listener_error_callback(self, error: Exception):
+        if isinstance(error, WebSocketConnectionClosedException):
+            logger.warning("The Plex server closed the websocket connection")
+        else:
+            logger.warning("Alert listener had an unexpected error")
+        self.must_stop = True
+
     def scheduler_callback(self):
+        if self.plex or not self.plex.is_alive:
+            return
         logger.info("Starting scheduler task")
         self.plex.start_deep_analysis()
 

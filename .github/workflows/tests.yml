@@ -10,6 +10,7 @@ on:
 
 env:
   CACHE_VERSION: 1
+  DEFAULT_PLEX: "claimed"
   DEFAULT_PYTHON: 3.8
 
 jobs:
@@ -48,30 +49,23 @@ jobs:
           python3 -m pylint plex_auto_languages --fail-under=9 --max-line-length=127 --disable=C0114,C0115,C0116,W1203,R0903,W0238 --init-hook='import sys; sys.path.append("${PWD}")'
 
   pytest:
-    name: pytest ${{ matrix.python-version }}
+    name: pytest ${{ env.DEFAULT_PYTHON }}
     runs-on: ubuntu-20.04
     env:
       PLEXAPI_AUTH_SERVER_BASEURL: http://127.0.0.1:32400
       PLEX_CONTAINER: linuxserver/plex
       PLEX_CONTAINER_TAG: latest
-    strategy:
-      fail-fast: false
-      max-parallel: 3
-      matrix:
-        python-version: ["3.8"]
-        plex: ["claimed"]
-    
     steps:
     - name: Check out code from Github
       uses: actions/checkout@v3
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ env.DEFAULT_PYTHON }}
       id: python
       uses: actions/setup-python@v3
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ env.DEFAULT_PYTHON }}
 
-    - name: Restore Python ${{ matrix.python-version }} virtual environment
+    - name: Restore Python ${{ env.DEFAULT_PYTHON }} virtual environment
       id: cache-venv
       uses: actions/cache@v3
       with:
@@ -159,7 +153,7 @@ jobs:
           -metadata:s:s:1 forced=true \
           ~/.cache/data/all.mkv
 
-    - name: Bootstrap ${{ matrix.plex }} Plex server
+    - name: Bootstrap ${{ env.DEFAULT_PLEX }} Plex server
       run: |
         . venv/bin/activate
         python \
@@ -168,9 +162,9 @@ jobs:
           --advertise-ip 127.0.0.1 \
           --bootstrap-timeout 540 \
           --docker-tag ${{ env.PLEX_CONTAINER_TAG }} \
-          --${{ matrix.plex }}
+          --${{ env.DEFAULT_PLEX }}
 
-    - name: Main tests with ${{ matrix.plex }} server
+    - name: Main tests with ${{ env.DEFAULT_PLEX }} server
       run: |
         . venv/bin/activate
         pytest \
@@ -191,7 +185,7 @@ jobs:
     - name: Upload coverage artifact
       uses: actions/upload-artifact@v3
       with:
-        name: coverage-${{ matrix.plex }}-${{ matrix.python-version }}
+        name: coverage-${{ env.DEFAULT_PLEX }}-${{ env.DEFAULT_PYTHON }}
         path: .coverage
 
   coverage:
@@ -199,21 +193,17 @@ jobs:
     runs-on: ubuntu-20.04
     needs: pytest
     if: always()
-    strategy:
-      matrix:
-        python-version: ["3.8"]
-        plex: ["claimed"]
     steps:
     - name: Check out code from GitHub
       uses: actions/checkout@v3
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ env.DEFAULT_PYTHON }}
       id: python
       uses: actions/setup-python@v3
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ env.DEFAULT_PYTHON }}
 
-    - name: Restore Python ${{ matrix.python-version }} virtual environment
+    - name: Restore Python ${{ env.DEFAULT_PYTHON }} virtual environment
       id: cache-venv
       uses: actions/cache@v3
       with:
@@ -229,14 +219,14 @@ jobs:
     - name: Download all coverage artifacts
       uses: actions/download-artifact@v3
 
-    - name: Combine ${{ matrix.plex }} coverage results
+    - name: Combine ${{ env.DEFAULT_PLEX }} coverage results
       run: |
         . venv/bin/activate
-        coverage combine coverage-${{ matrix.plex }}*/.coverage*
+        coverage combine coverage-${{ env.DEFAULT_PLEX }}*/.coverage*
         coverage report --fail-under=50
         coverage xml
 
-    - name: Upload ${{ matrix.plex }} coverage to Codecov
+    - name: Upload ${{ env.DEFAULT_PLEX }} coverage to Codecov
       uses: codecov/codecov-action@v2.1.0
       with:
-        flags: ${{ matrix.plex }}
+        flags: ${{ env.DEFAULT_PLEX }}

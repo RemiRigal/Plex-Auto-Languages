@@ -24,6 +24,13 @@ def plex(config):
     return PlexServer(SERVER_BASEURL, SERVER_TOKEN, None, config)
 
 
+@pytest.fixture
+def show(plex):
+    show = plex._plex.library.search(libtype="show", max_results=1)[0]
+    print("Show: %s" % show)
+    return show
+
+
 @pytest.fixture()
 def episode(plex):
     episode = plex.episodes()[0]

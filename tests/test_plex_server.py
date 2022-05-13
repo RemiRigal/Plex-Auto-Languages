@@ -91,11 +91,10 @@ def test_sections(plex):
     assert len(sections) == 1
 
 
-def test_get_user_id(plex):
+def test_get_logged_user(plex):
     with patch.object(BasePlexServer, "systemAccounts", return_value=[]):
-        user_id, username = plex._get_user_id()
-        assert user_id is None
-        assert username is None
+        user = plex._get_logged_user()
+        assert user is None
 
 
 def test_get_user_by_id(plex):
@@ -112,7 +111,7 @@ def test_get_user_by_id(plex):
 
 
 def test_get_all_user_ids(plex):
-    user_ids = plex._get_user_id()
+    user_ids = plex.get_all_user_ids()
     assert len(user_ids) == 2
     assert plex.user_id in user_ids
 
@@ -147,7 +146,7 @@ def test_save_cache(plex):
 
 
 def test_init(config):
-    with patch.object(PlexServer, "_get_user_id", return_value=(None, None)):
+    with patch.object(PlexServer, "_get_logged_user", return_value=None):
         with pytest.raises(UserNotFound):
             _ = PlexServer(config.get("plex.url"), config.get("plex.token"), None, config)
 
@@ -166,10 +165,10 @@ def test_process_new_or_updated_episode(plex, episode):
     last_episode = show.episodes()[-1]
     last_episode.reload()
     part = last_episode.media[0].parts[0]
-    french_audio = [audio for audio in part.audioStreams() if audio.languageCode == "eng"][0]
-    part.setDefaultAudioStream(french_audio)
-    french_sub = [sub for sub in part.subtitleStreams() if sub.languageCode == "eng"][0]
-    part.setDefaultSubtitleStream(french_sub)
+    english_audio = [audio for audio in part.audioStreams() if audio.languageCode == "eng"][0]
+    part.setDefaultAudioStream(english_audio)
+    english_sub = [sub for sub in part.subtitleStreams() if sub.languageCode == "eng"][0]
+    part.setDefaultSubtitleStream(english_sub)
 
     # The mocked function must be called once per user
     with patch.object(NewOrUpdatedTrackChanges, "change_track_for_user") as mocked_change_track:
@@ -200,10 +199,10 @@ def test_change_tracks(plex, episode):
     second_episode.reload()
 
     part = second_episode.media[0].parts[0]
-    french_audio = [audio for audio in part.audioStreams() if audio.languageCode == "eng"][0]
-    part.setDefaultAudioStream(french_audio)
-    french_sub = [sub for sub in part.subtitleStreams() if sub.languageCode == "eng"][0]
-    part.setDefaultSubtitleStream(french_sub)
+    english_audio = [audio for audio in part.audioStreams() if audio.languageCode == "eng"][0]
+    part.setDefaultAudioStream(english_audio)
+    english_sub = [sub for sub in part.subtitleStreams() if sub.languageCode == "eng"][0]
+    part.setDefaultSubtitleStream(english_sub)
 
     # The mocked function must be called once
     with patch.object(TrackChanges, "apply") as mocked_apply:

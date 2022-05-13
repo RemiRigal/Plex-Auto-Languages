@@ -78,8 +78,8 @@ class PlexServer(UnprivilegedPlexServer):
         super().__init__(url, token)
         self.notifier = notifier
         self.config = config
-        self.user_id, self.username = self._get_user_id()
-        if self.user_id is None:
+        self._user = self._get_logged_user()
+        if self._user is None:
             logger.error("Unable to find the user associated with the provided Plex Token")
             raise UserNotFound
         else:
@@ -89,15 +89,23 @@ class PlexServer(UnprivilegedPlexServer):
         self.cache = PlexServerCache(self)
 
     @property
+    def user_id(self):
+        return self._user.id if self._user is not None else None
+
+    @property
+    def username(self):
+        return self._user.name if self._user is not None else None
+
+    @property
     def is_alive(self):
         return self._alert_listener is not None and self._alert_listener.is_alive()
 
-    def _get_user_id(self):
+    def _get_logged_user(self):
         plex_username = self._plex.myPlexAccount().username
         for account in self._plex.systemAccounts():
             if account.name == plex_username:
-                return account.id, account.name
-        return None, None
+                return account
+        return None
 
     def save_cache(self):
         self.cache.save()
@@ -114,6 +122,7 @@ class PlexServer(UnprivilegedPlexServer):
         for user in self._plex.myPlexAccount().users():
             server_identifiers = [share.machineIdentifier for share in user.servers]
             if self.unique_id in server_identifiers:
+                user.name = user.title
                 users.append(user)
         return users
 
@@ -143,7 +152,7 @@ class PlexServer(UnprivilegedPlexServer):
         return (user.id, user.name)
 
     def get_user_by_id(self, user_id: Union[int, str]):
-        matching_users = [u for u in self.get_instance_users() if str(u.id) == str(user_id)]
+        matching_users = [u for u in [self._user] + self.get_instance_users() if str(u.id) == str(user_id)]
         if len(matching_users) == 0:
             return None
         return matching_users[0]

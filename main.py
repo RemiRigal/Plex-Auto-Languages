@@ -64,7 +64,7 @@ class PlexAutoLanguages():
         self.plex.save_cache()
         if self.scheduler:
             logger.info("Stopping scheduler")
-            self.scheduler.stop_event.set()
+            self.scheduler.shutdown()
         logger.info("Stopping alert listener")
         self.healthcheck_server.shutdown()
 

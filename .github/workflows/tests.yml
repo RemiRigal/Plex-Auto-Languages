@@ -1,0 +1,231 @@
+name: tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  CACHE_VERSION: 1
+  DEFAULT_PLEX: "claimed"
+  DEFAULT_PYTHON: 3.8
+
+jobs:
+  code_quality_test:
+    name: code quality test ${{ matrix.python-version }}
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+    steps:
+      - name: Check out code from Github
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pylint
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Lint with pylint
+        run: |
+          # stop the build if pylint gives a score under 9
+          export PWD=$(pwd)
+          python3 -m pylint plex_auto_languages --fail-under=9 --max-line-length=127 --disable=C0114,C0115,C0116,W1203,R0903,W0238 --init-hook='import sys; sys.path.append("${PWD}")'
+
+  pytest:
+    name: pytest
+    runs-on: ubuntu-20.04
+    env:
+      PLEXAPI_AUTH_SERVER_BASEURL: http://127.0.0.1:32400
+      PLEX_CONTAINER: linuxserver/plex
+      PLEX_CONTAINER_TAG: latest
+    steps:
+    - name: Check out code from Github
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      id: python
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ env.DEFAULT_PYTHON }}
+
+    - name: Restore Python ${{ env.DEFAULT_PYTHON }} virtual environment
+      id: cache-venv
+      uses: actions/cache@v3
+      with:
+        path: venv
+        key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-venv-${{ steps.python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+
+    - name: Create Python virtual environment
+      if: steps.cache-venv.outputs.cache-hit != 'true'
+      run: |
+        python -m venv venv
+        . venv/bin/activate
+        pip install -U pip
+        pip install -r requirements.txt
+        pip install -r tests/requirements.txt
+
+    - name: Get PMS Docker image digest
+      id: docker-digest
+      run: |
+        mkdir -p ~/.cache/docker/${{ env.PLEX_CONTAINER }}
+        echo "Image: ${{ env.PLEX_CONTAINER }}"
+        echo "Tag: ${{ env.PLEX_CONTAINER_TAG }}"
+        token=$(curl \
+          --silent \
+          "https://auth.docker.io/token?scope=repository:${{ env.PLEX_CONTAINER }}:pull&service=registry.docker.io" \
+          | jq -r '.token')
+        digest=$(curl \
+          --silent \
+          --header "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+          --header "Authorization: Bearer $token" \
+          "https://registry-1.docker.io/v2/${{ env.PLEX_CONTAINER }}/manifests/${{ env.PLEX_CONTAINER_TAG }}" \
+          | jq -r '.config.digest')
+        echo "Digest: $digest"
+        echo ::set-output name=digest::$digest
+
+    - name: Cache PMS Docker image
+      id: docker-cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/docker/linuxserver/*.tar
+        key: ${{ runner.os }}-plex-${{ steps.docker-digest.outputs.digest }}
+
+    - name: Pull PMS Docker image
+      if: steps.docker-cache.outputs.cache-hit != 'true'
+      run: |
+        docker pull ${{ env.PLEX_CONTAINER }}:${{ env.PLEX_CONTAINER_TAG }}
+        docker save -o ~/.cache/docker/${{ env.PLEX_CONTAINER }}-${{ env.PLEX_CONTAINER_TAG }}.tar ${{ env.PLEX_CONTAINER }}:${{ env.PLEX_CONTAINER_TAG }}
+        echo "Saved image: ${{ env.PLEX_CONTAINER }}:${{ env.PLEX_CONTAINER_TAG }}"
+
+    - name: Load PMS Docker image
+      if: steps.docker-cache.outputs.cache-hit == 'true'
+      run: |
+        docker load -i ~/.cache/docker/${{ env.PLEX_CONTAINER }}-${{ env.PLEX_CONTAINER_TAG }}.tar
+
+    - name: Set Plex credentials
+      run: |
+        echo "PLEXAPI_AUTH_SERVER_TOKEN=${{ secrets.PLEXAPI_AUTH_SERVER_TOKEN }}" >> $GITHUB_ENV
+
+    - name: Restore fake media files
+      id: cache-data
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/data
+        key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-fake-media
+
+    - name: Create fake media
+      if: steps.cache-data.outputs.cache-hit != 'true'
+      run: |
+        sudo apt-get install -y ffmpeg
+        mkdir ~/.cache/data
+        echo "Generating subtitles..."
+        printf "1\n00:00:00,000 --> 00:00:01,000\nSubtitle" > ~/.cache/data/empty.srt
+        echo "Generating audio..."
+        ffmpeg -hide_banner -loglevel error -f lavfi -i anullsrc -t 3 -c:a libvorbis ~/.cache/data/empty.wav
+        echo "Generating video..."
+        ffmpeg -hide_banner -loglevel error -f lavfi -t 3 -i color=c=black:s=640x480 -c:v libx264 -tune stillimage -pix_fmt yuv420p ~/.cache/data/empty.mkv
+        echo "Muxing everything..."
+        ffmpeg -hide_banner -loglevel error -i ~/.cache/data/empty.mkv -i ~/.cache/data/empty.wav -i ~/.cache/data/empty.srt \
+          -c copy -map 0:v:0 -map 1:a:0 -map 1:a:0 \
+          -map 2:s:0 -map 2:s:0 \
+          -metadata:s:a:0 language=eng \
+          -metadata:s:a:1 language=fra \
+          -metadata:s:s:0 language=eng \
+          -metadata:s:s:1 language=fra \
+          -metadata:s:s:1 forced=true \
+          ~/.cache/data/all.mkv
+
+    - name: Bootstrap ${{ env.DEFAULT_PLEX }} Plex server
+      run: |
+        . venv/bin/activate
+        python \
+          -u tools/plex_bootstrap.py \
+          --destination plex \
+          --advertise-ip 127.0.0.1 \
+          --bootstrap-timeout 540 \
+          --docker-tag ${{ env.PLEX_CONTAINER_TAG }} \
+          --${{ env.DEFAULT_PLEX }}
+
+    - name: Main tests with ${{ env.DEFAULT_PLEX }} server
+      run: |
+        . venv/bin/activate
+        pytest \
+          -rxXs \
+          --tb=native \
+          --verbose \
+          --cov=plex_auto_languages \
+          --cov-report term-missing \
+          --cov-append \
+          tests
+
+    - name: Unlink PMS from MyPlex account
+      if: always()
+      run: |
+        . venv/bin/activate
+        python -u tools/plex_teardown.py
+
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-${{ env.DEFAULT_PLEX }}-${{ env.DEFAULT_PYTHON }}
+        path: .coverage
+
+  coverage:
+    name: upload coverage to codecov
+    runs-on: ubuntu-20.04
+    needs: pytest
+    if: always()
+    steps:
+    - name: Check out code from GitHub
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      id: python
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ env.DEFAULT_PYTHON }}
+
+    - name: Restore Python ${{ env.DEFAULT_PYTHON }} virtual environment
+      id: cache-venv
+      uses: actions/cache@v3
+      with:
+        path: venv
+        key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-venv-${{ steps.python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+
+    - name: Fail job if Python cache restore failed
+      if: steps.cache-venv.outputs.cache-hit != 'true'
+      run: |
+        echo "Failed to restore Python virtual environment from cache"
+        exit 1
+
+    - name: Download all coverage artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Combine ${{ env.DEFAULT_PLEX }} coverage results
+      run: |
+        . venv/bin/activate
+        coverage combine coverage-${{ env.DEFAULT_PLEX }}*/.coverage*
+        coverage report --fail-under=50
+        coverage xml
+
+    - name: Upload ${{ env.DEFAULT_PLEX }} coverage to Codecov
+      uses: codecov/codecov-action@v2.1.0
+      with:
+        flags: ${{ env.DEFAULT_PLEX }}

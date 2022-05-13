@@ -1,4 +1,3 @@
-import sys
 import itertools
 from typing import Union
 from datetime import datetime, timedelta
@@ -15,6 +14,7 @@ from plex_auto_languages.track_changes import TrackChanges, NewOrUpdatedTrackCha
 from plex_auto_languages.utils.notifier import Notifier
 from plex_auto_languages.plex_server_cache import PlexServerCache
 from plex_auto_languages.constants import EventType
+from plex_auto_languages.exceptions import UserNotFound
 
 
 logger = get_logger()
@@ -78,10 +78,10 @@ class PlexServer(UnprivilegedPlexServer):
         super().__init__(url, token)
         self.notifier = notifier
         self.config = config
-        self.user_id, self.username = self._get_user_id()
-        if self.user_id is None:
+        self._user = self._get_logged_user()
+        if self._user is None:
             logger.error("Unable to find the user associated with the provided Plex Token")
-            sys.exit(0)
+            raise UserNotFound
         else:
             logger.info(f"Successfully connected as user '{self.username}' (id: {self.user_id})")
         self._alert_handler = None
@@ -89,15 +89,23 @@ class PlexServer(UnprivilegedPlexServer):
         self.cache = PlexServerCache(self)
 
     @property
+    def user_id(self):
+        return self._user.id if self._user is not None else None
+
+    @property
+    def username(self):
+        return self._user.name if self._user is not None else None
+
+    @property
     def is_alive(self):
         return self._alert_listener is not None and self._alert_listener.is_alive()
 
-    def _get_user_id(self):
+    def _get_logged_user(self):
         plex_username = self._plex.myPlexAccount().username
         for account in self._plex.systemAccounts():
             if account.name == plex_username:
-                return account.id, account.name
-        return None, None
+                return account
+        return None
 
     def save_cache(self):
         self.cache.save()
@@ -109,13 +117,22 @@ class PlexServer(UnprivilegedPlexServer):
         self._alert_handler = PlexAlertHandler(self, trigger_on_play, trigger_on_scan, trigger_on_activity)
         self._alert_listener = self._plex.startAlertListener(self._alert_handler)
 
+    def get_instance_users(self):
+        users = []
+        for user in self._plex.myPlexAccount().users():
+            server_identifiers = [share.machineIdentifier for share in user.servers]
+            if self.unique_id in server_identifiers:
+                user.name = user.title
+                users.append(user)
+        return users
+
     def get_all_user_ids(self):
-        return [self.user_id] + [user.id for user in self._plex.myPlexAccount().users()]
+        return [self.user_id] + [user.id for user in self.get_instance_users()]
 
     def get_plex_instance_of_user(self, user_id: Union[int, str]):
         if str(self.user_id) == str(user_id):
             return self
-        matching_users = [u for u in self._plex.myPlexAccount().users() if str(u.id) == str(user_id)]
+        matching_users = [u for u in self.get_instance_users() if str(u.id) == str(user_id)]
         if len(matching_users) == 0:
             logger.error(f"Unable to find user with id '{user_id}'")
             return None
@@ -135,7 +152,7 @@ class PlexServer(UnprivilegedPlexServer):
         return (user.id, user.name)
 
     def get_user_by_id(self, user_id: Union[int, str]):
-        matching_users = [u for u in self._plex.systemAccounts() if str(u.id) == str(user_id)]
+        matching_users = [u for u in [self._user] + self.get_instance_users() if str(u.id) == str(user_id)]
         if len(matching_users) == 0:
             return None
         return matching_users[0]

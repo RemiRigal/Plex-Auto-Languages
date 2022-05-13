@@ -120,7 +120,6 @@ jobs:
         docker load -i ~/.cache/docker/${{ env.PLEX_CONTAINER }}-${{ env.PLEX_CONTAINER_TAG }}.tar
 
     - name: Set Plex credentials
-      if: matrix.plex == 'claimed'
       run: |
         echo "PLEXAPI_AUTH_SERVER_TOKEN=${{ secrets.PLEXAPI_AUTH_SERVER_TOKEN }}" >> $GITHUB_ENV
 

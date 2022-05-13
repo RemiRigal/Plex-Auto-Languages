@@ -1,3 +1,4 @@
+import time
 import math
 import pytest
 from datetime import datetime
@@ -145,6 +146,33 @@ def test_save_cache(plex):
         mocked_save.assert_called_once()
 
 
+def test_get_server(plex, config, caplog):
+    url = config.get("plex.url")
+    token = config.get("plex.token")
+    server = plex._get_server(url, token, max_tries=1)
+    assert server is not None
+    assert server.account()
+
+    server = plex._get_server(url, "invalid_token", max_tries=1)
+    assert server is None
+    assert "Unauthorized" in caplog.text
+    caplog.clear()
+
+    server = plex._get_server("http://invalid_url:8888", "invalid_token", max_tries=1)
+    assert server is None
+    assert "ConnectionError" in caplog.text
+
+
+def test_start_alert_listener(plex):
+    plex.start_alert_listener(None)
+    time.sleep(1)
+    assert plex.is_alive is True
+    plex._alert_listener.stop()
+    plex._alert_listener.join()
+    time.sleep(1)
+    assert plex.is_alive is False
+
+
 def test_init(config):
     with patch.object(PlexServer, "_get_logged_user", return_value=None):
         with pytest.raises(UserNotFound):
@@ -215,3 +243,9 @@ def test_change_tracks(plex, episode):
     selected_audio, selected_sub = plex.get_selected_streams(second_episode)
     assert selected_audio.languageCode == "fra"
     assert selected_sub.languageCode == "fra"
+
+
+def test_deep_analysis(plex):
+    with patch.object(PlexServer, "change_tracks"):
+        with patch.object(PlexServer, "process_new_or_updated_episode"):
+            plex.start_deep_analysis()

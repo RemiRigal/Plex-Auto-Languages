@@ -3,6 +3,7 @@
 [![GitHub Build](https://img.shields.io/github/workflow/status/RemiRigal/Plex-Auto-Languages/dockerhub_build_push?style=flat-square)](https://github.com/RemiRigal/Plex-Auto-Languages/actions/workflows/dockerhub_build_push.yml)
 [![Docker Pulls](https://img.shields.io/docker/pulls/remirigal/plex-auto-languages?style=flat-square)](https://hub.docker.com/r/remirigal/plex-auto-languages)
 [![Version](https://img.shields.io/github/v/tag/RemiRigal/Plex-Auto-Languages?style=flat-square&label=version)](https://github.com/RemiRigal/Plex-Auto-Languages/tags)
+[![Codecov](https://img.shields.io/codecov/c/gh/RemiRigal/Plex-Auto-Languages/master?flag=flag_name&token=8cb10651-9838-444a-a9d0-2ae5f65379dc&style=flat-square&logo=codecov)](https://app.codecov.io/gh/RemiRigal/Plex-Auto-Languages)
 [![License](https://img.shields.io/github/license/RemiRigal/Plex-Auto-Languages?style=flat-square)](https://github.com/RemiRigal/Plex-Auto-Languages/blob/master/LICENSE)
 
 This application lets you have a Netflix-like experience by auto-updating the language of your Plex TV Show episodes based on the current language you are using without messing with your existing language preferences.  

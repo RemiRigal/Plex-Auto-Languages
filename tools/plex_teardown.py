@@ -1,16 +1,18 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Remove current Plex Server and a Client from MyPlex account. Useful when running tests in CI.
-"""
 from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
+from plexapi.exceptions import NotFound
 from plexapi import X_PLEX_IDENTIFIER
 
 
 if __name__ == "__main__":
     myplex = MyPlexAccount()
     plex = PlexServer(token=myplex.authenticationToken)
+
+    # Remove home user if it exists
+    try:
+        plex.myPlexAccount().removeHomeUser("HomeUser")
+    except NotFound:
+        pass
 
     # Remove the test server
     for device in plex.myPlexAccount().devices():

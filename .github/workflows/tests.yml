@@ -49,7 +49,7 @@ jobs:
           python3 -m pylint plex_auto_languages --fail-under=9 --max-line-length=127 --disable=C0114,C0115,C0116,W1203,R0903,W0238 --init-hook='import sys; sys.path.append("${PWD}")'
 
   pytest:
-    name: pytest ${{ env.DEFAULT_PYTHON }}
+    name: pytest
     runs-on: ubuntu-20.04
     env:
       PLEXAPI_AUTH_SERVER_BASEURL: http://127.0.0.1:32400

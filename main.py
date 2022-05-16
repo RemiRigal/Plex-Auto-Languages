@@ -78,6 +78,7 @@ class PlexAutoLanguages():
             self.alive = False
             self.plex.save_cache()
             if not self.stop_signal:
+                sleep(1)
                 logger.info("Trying to restore the connection to the Plex server...")
 
         if self.scheduler:
@@ -89,7 +90,8 @@ class PlexAutoLanguages():
         if isinstance(error, WebSocketConnectionClosedException):
             logger.warning("The Plex server closed the websocket connection")
         else:
-            logger.warning("Alert listener had an unexpected error")
+            logger.error("Alert listener had an unexpected error")
+            logger.error(error, exc_info=True)
         self.must_stop = True
 
     def scheduler_callback(self):

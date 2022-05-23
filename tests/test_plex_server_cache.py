@@ -10,6 +10,11 @@ def test_episode_parts(plex):
     assert len(plex.cache.episode_parts) == 46
 
 
+def test_is_refreshing(plex):
+    plex.cache._is_refreshing = True
+    assert plex.cache.refresh_library_cache() == ([], [])
+
+
 def test_cache_dir(plex):
     mocked_path = "/tmp/mocked_cache_dir"
     plex.config._config["data_dir"] = mocked_path

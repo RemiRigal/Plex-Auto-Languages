@@ -18,6 +18,7 @@ logger = get_logger()
 class PlexServerCache():
 
     def __init__(self, plex: PlexServer):
+        self._is_refreshing = False
         self._encoder = DateTimeEncoder()
         self._plex = plex
         self._cache_file_path = self._get_cache_file_path()
@@ -51,6 +52,10 @@ class PlexServerCache():
         return True
 
     def refresh_library_cache(self):
+        if self._is_refreshing:
+            logger.debug("[Cache] The library cache is already being refreshed")
+            return [], []
+        self._is_refreshing = True
         logger.debug("[Cache] Refreshing library cache")
         added = []
         updated = []
@@ -67,6 +72,7 @@ class PlexServerCache():
         logger.debug("[Cache] Done refreshing library cache")
         self._last_refresh = datetime.now()
         self.save()
+        self._is_refreshing = False
         return added, updated
 
     def _get_cache_file_path(self):

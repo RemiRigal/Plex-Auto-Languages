@@ -36,10 +36,12 @@ class PlexPlaying(PlexAlert):
     def process(self, plex: PlexServer):
         # Get User id and user's Plex instance
         if self.client_identifier not in plex.cache.user_clients:
-            plex.cache.user_clients[self.client_identifier] = plex.get_user_from_client_identifier(self.client_identifier)
-        user_id, username = plex.cache.user_clients[self.client_identifier]
-        if user_id is None:
-            return
+            user_id, username = plex.get_user_from_client_identifier(self.client_identifier)
+            if user_id is None:
+                return
+            plex.cache.user_clients[self.client_identifier] = (user_id, username)
+        else:
+            user_id, username = plex.cache.user_clients[self.client_identifier]
         user_plex = plex.get_plex_instance_of_user(user_id)
         if user_plex is None:
             return

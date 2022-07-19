@@ -278,3 +278,7 @@ class PlexServer(UnprivilegedPlexServer):
                 continue
             logger.info(f"[Scheduler] Processing updated episode {self.get_episode_short_name(item)}")
             self.process_new_or_updated_episode(item.key, EventType.SCHEDULER, False)
+
+    def stop(self):
+        if self._alert_handler:
+            self._alert_handler.stop()

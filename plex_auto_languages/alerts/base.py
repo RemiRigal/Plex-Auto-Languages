@@ -12,5 +12,9 @@ class PlexAlert():
     def __init__(self, message: dict):
         self._message = message
 
+    @property
+    def message(self):
+        return self._message
+
     def process(self, plex: PlexServer):
         raise NotImplementedError

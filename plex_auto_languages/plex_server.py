@@ -151,13 +151,21 @@ class PlexServer(UnprivilegedPlexServer):
         self._alert_listener.start()
 
     def get_instance_users(self):
+        users = self.cache.get_instance_users()
+        if users is not None:
+            return users
         users = []
-        for user in self._plex.myPlexAccount().users():
-            server_identifiers = [share.machineIdentifier for share in user.servers]
-            if self.unique_id in server_identifiers:
-                user.name = user.title
-                users.append(user)
-        return users
+        try:
+            for user in self._plex.myPlexAccount().users():
+                server_identifiers = [share.machineIdentifier for share in user.servers]
+                if self.unique_id in server_identifiers:
+                    user.name = user.title
+                    users.append(user)
+            self.cache.set_instance_users(users)
+            return users
+        except BadRequest:
+            logger.warning("Unable to retrieve the users of the account, falling back to cache")
+            return self.cache.get_instance_users(check_validity=False)
 
     def get_all_user_ids(self):
         return [self.user_id] + [user.id for user in self.get_instance_users()]

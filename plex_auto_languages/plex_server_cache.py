@@ -1,8 +1,9 @@
 from __future__ import annotations
 import os
 import json
-from datetime import datetime
+import copy
 from typing import TYPE_CHECKING
+from datetime import datetime, timedelta
 from dateutil.parser import isoparse
 
 from plex_auto_languages.utils.logger import get_logger
@@ -30,6 +31,9 @@ class PlexServerCache():
         self.newly_added = {}        # episode_id: added_at
         self.newly_updated = {}      # episode_id: updated_at
         self.recent_activities = {}  # (user_id, item_id): timestamp
+        # Users cache
+        self._instance_users = []
+        self._instance_users_valid_until = datetime.fromtimestamp(0)
         # Library cache
         self.episode_parts = {}
         # Initialization
@@ -74,6 +78,15 @@ class PlexServerCache():
         self.save()
         self._is_refreshing = False
         return added, updated
+
+    def get_instance_users(self, check_validity=True):
+        if check_validity and datetime.now() > self._instance_users_valid_until:
+            return None
+        return copy.deepcopy(self._instance_users)
+
+    def set_instance_users(self, instance_users):
+        self._instance_users = copy.deepcopy(instance_users)
+        self._instance_users_valid_until = datetime.now() + timedelta(hours=12)
 
     def _get_cache_file_path(self):
         data_dir = self._plex.config.get("data_dir")

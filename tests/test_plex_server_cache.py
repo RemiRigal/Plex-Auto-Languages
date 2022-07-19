@@ -48,6 +48,14 @@ def test_load_save():
             assert old_episode_parts == cache.episode_parts
 
 
+def test_instance_users(plex):
+    assert plex.cache.get_instance_users() is None
+    assert plex.cache.get_instance_users(check_validity=False) == []
+
+    plex.cache.set_instance_users(["user1", "user2"])
+    assert len(plex.cache.get_instance_users()) == 2
+
+
 def test_refresh(plex):
     keys = list(plex.cache.episode_parts.keys())
     assert len(keys) > 1

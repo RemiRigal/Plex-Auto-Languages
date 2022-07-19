@@ -4,6 +4,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import patch
 from plexapi.video import Episode, Show
+from plexapi.exceptions import BadRequest
 from plexapi.server import PlexServer as BasePlexServer
 
 from plex_auto_languages.track_changes import TrackChanges, NewOrUpdatedTrackChanges
@@ -96,6 +97,15 @@ def test_get_logged_user(plex):
     with patch.object(BasePlexServer, "systemAccounts", return_value=[]):
         user = plex._get_logged_user()
         assert user is None
+
+
+def test_get_instance_users(plex):
+    with patch.object(BasePlexServer, "myPlexAccount", side_effect=BadRequest()):
+        assert plex.get_instance_users() == []
+    assert len(plex.get_instance_users()) == 1
+    assert plex.cache._instance_users_valid_until > datetime.fromtimestamp(0)
+    with patch.object(BasePlexServer, "myPlexAccount", side_effect=BadRequest()):
+        assert len(plex.get_instance_users()) == 1
 
 
 def test_get_user_by_id(plex):

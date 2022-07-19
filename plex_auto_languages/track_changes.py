@@ -148,7 +148,7 @@ class TrackChanges():
         scores = [0] * len(streams)
         for index, stream in enumerate(streams):
             if self._audio_stream.codec == stream.codec:
-                scores[index] += 3
+                scores[index] += 5
             if self._audio_stream.audioChannelLayout == stream.audioChannelLayout:
                 scores[index] += 3
             if self._audio_stream.channels <= stream.channels:
@@ -160,12 +160,20 @@ class TrackChanges():
     def _match_subtitle_stream(self, subtitle_streams: List[SubtitleStream]):
         # If no subtitle is selected, the reference stream can be 'None'
         if self._subtitle_stream is None:
-            return None
+            if self._audio_stream is None:
+                return None
+            match_forced_only = True
+            language_code = self._audio_stream.languageCode
+        else:
+            match_forced_only = False
+            language_code = self._subtitle_stream.languageCode
         # We only want stream with the same language code
-        streams = [s for s in subtitle_streams if s.languageCode == self._subtitle_stream.languageCode]
+        streams = [s for s in subtitle_streams if s.languageCode == language_code]
+        if match_forced_only:
+            streams = [s for s in streams if s.forced]
         if len(streams) == 0:
             return None
-        if len(streams) == 1:
+        if len(streams) == 1 or match_forced_only:
             return streams[0]
         # If multiple streams match, order them based on a score
         scores = [0] * len(streams)

@@ -4,6 +4,72 @@ from plex_auto_languages.constants import EventType
 from plex_auto_languages.track_changes import TrackChanges, NewOrUpdatedTrackChanges
 
 
+class SubtitleStream():
+
+    def __init__(self, languageCode, codec, title, forced):
+        self.languageCode = languageCode
+        self.codec = codec
+        self.title = title
+        self.forced = forced
+
+
+class AudioStream():
+
+    def __init__(self, languageCode, codec, title, audioChannelLayout, channels):
+        self.languageCode = languageCode
+        self.codec = codec
+        self.title = title
+        self.audioChannelLayout = audioChannelLayout
+        self.channels = channels
+
+
+def test_match_audio_stream(plex, episode):
+    changes = TrackChanges(plex.username, episode, EventType.NEW_EPISODE)
+    audio_streams = [
+        AudioStream("eng", "ac3", "English", "5.1", 6),
+        AudioStream("eng", "ac3", "English", "7.1", 8),
+        AudioStream("eng", "ac3", "English with another title", "5.1", 6),
+        AudioStream("eng", "truehd", "English", "5.1", 6),
+        AudioStream("fre", "truehd", "French TrueHD", "7.1", 8),
+        AudioStream("fre", "truehd", "", "7.1", 8),
+        AudioStream("fre", "truehd", "", "5.1", 6)
+    ]
+
+    changes._audio_stream = AudioStream("eng", "ac3", "English", "5.1", 6)
+    assert changes._match_audio_stream(audio_streams) == audio_streams[0]
+
+    changes._audio_stream = AudioStream("eng", "truehd", "English", "7.1", 8)
+    assert changes._match_audio_stream(audio_streams) == audio_streams[3]
+
+    changes._audio_stream = AudioStream("fre", "truehd", "French", "7.1", 8)
+    assert changes._match_audio_stream(audio_streams) == audio_streams[4]
+
+
+def test_match_subtitle_stream(plex, episode):
+    changes = TrackChanges(plex.username, episode, EventType.NEW_EPISODE)
+    subtitle_streams = [
+        SubtitleStream("eng", "srt", "English", False),
+        SubtitleStream("eng", "srt", "English (Forced)", True),
+        SubtitleStream("spa", "srt", "Spanish", False),
+        SubtitleStream("spa", "srt", "Spanish (Forced)", True),
+        SubtitleStream("fra", "srt", "French", False)
+    ]
+
+    changes._audio_stream = AudioStream("eng", "ac3", "English", "5.1", 6)
+    changes._subtitle_stream = SubtitleStream("fra", "srt", "", False)
+    assert changes._match_subtitle_stream(subtitle_streams) == subtitle_streams[4]
+
+    changes._subtitle_stream = SubtitleStream("spa", "srt", "", True)
+    assert changes._match_subtitle_stream(subtitle_streams) == subtitle_streams[3]
+
+    changes._subtitle_stream = None
+    assert changes._match_subtitle_stream(subtitle_streams) == subtitle_streams[1]
+
+    changes._audio_stream = AudioStream("fra", "ac3", "French", "5.1", 6)
+    changes._subtitle_stream = None
+    assert changes._match_subtitle_stream(subtitle_streams) is None
+
+
 def test_track_changes(plex, show):
     season_one_episodes = [e for e in show.episodes() if e.seasonNumber == 1]
     episode = season_one_episodes[-2]

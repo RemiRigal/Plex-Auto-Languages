@@ -179,6 +179,7 @@ def test_start_alert_listener(plex):
     assert plex.is_alive is True
     plex._alert_listener.stop()
     plex._alert_listener.join()
+    plex.stop()
     time.sleep(1)
     assert plex.is_alive is False
 

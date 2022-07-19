@@ -77,6 +77,7 @@ class PlexAutoLanguages():
                     self.must_stop = True
             self.alive = False
             self.plex.save_cache()
+            self.plex.stop()
             if not self.stop_signal:
                 sleep(1)
                 logger.info("Trying to restore the connection to the Plex server...")

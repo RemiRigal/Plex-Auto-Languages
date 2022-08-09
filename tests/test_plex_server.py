@@ -1,6 +1,7 @@
 import time
 import math
 import pytest
+import requests
 from datetime import datetime
 from unittest.mock import patch
 from plexapi.video import Episode, Show
@@ -165,16 +166,16 @@ def test_save_cache(plex):
 def test_get_server(plex, config, caplog):
     url = config.get("plex.url")
     token = config.get("plex.token")
-    server = plex._get_server(url, token, max_tries=1)
+    server = plex._get_server(url, token, requests.Session(), max_tries=1)
     assert server is not None
     assert server.account()
 
-    server = plex._get_server(url, "invalid_token", max_tries=1)
+    server = plex._get_server(url, "invalid_token", requests.Session(), max_tries=1)
     assert server is None
     assert "Unauthorized" in caplog.text
     caplog.clear()
 
-    server = plex._get_server("http://invalid_url:8888", "invalid_token", max_tries=1)
+    server = plex._get_server("http://invalid_url:8888", "invalid_token", requests.Session(), max_tries=1)
     assert server is None
     assert "ConnectionError" in caplog.text
 

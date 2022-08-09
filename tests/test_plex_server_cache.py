@@ -6,6 +6,15 @@ from unittest.mock import patch
 from plex_auto_languages.plex_server_cache import PlexServerCache
 
 
+class FakeUser():
+
+    def __init__(self, user_id):
+        self.id = user_id
+
+    def get_token(self, machine_identifier):
+        return "token"
+
+
 def test_episode_parts(plex):
     assert len(plex.cache.episode_parts) == 46
 
@@ -52,8 +61,20 @@ def test_instance_users(plex):
     assert plex.cache.get_instance_users() is None
     assert plex.cache.get_instance_users(check_validity=False) == []
 
-    plex.cache.set_instance_users(["user1", "user2"])
+    plex.cache.set_instance_users([FakeUser("user1"), FakeUser("user2")])
     assert len(plex.cache.get_instance_users()) == 2
+    user1_token = plex.cache.get_instance_user_token("user1")
+    assert user1_token is not None
+
+    plex.cache.set_instance_users([FakeUser("user1")])
+    assert len(plex.cache.get_instance_users()) == 1
+    assert plex.cache.get_instance_user_token("user1") == user1_token
+
+
+def test_instance_user_tokens(plex):
+    assert plex.cache.get_instance_user_token("fake_user_id") is None
+    plex.cache.set_instance_user_token("user_id", "token")
+    assert plex.cache.get_instance_user_token("user_id") == "token"
 
 
 def test_refresh(plex):

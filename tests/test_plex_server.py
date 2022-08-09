@@ -137,6 +137,12 @@ def test_get_plex_instance_of_user(plex):
     assert plex != new_plex
     assert isinstance(new_plex, UnprivilegedPlexServer)
 
+    plex.cache._instance_user_tokens.clear()
+    other_user_id = plex.get_all_user_ids()[1]
+    new_plex = plex.get_plex_instance_of_user(other_user_id)
+    assert plex != new_plex
+    assert isinstance(new_plex, UnprivilegedPlexServer)
+
     new_plex = plex.get_plex_instance_of_user("invalid_user_id")
     assert new_plex is None
 

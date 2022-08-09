@@ -33,6 +33,7 @@ class PlexServerCache():
         self.recent_activities = {}  # (user_id, item_id): timestamp
         # Users cache
         self._instance_users = []
+        self._instance_user_tokens = {}
         self._instance_users_valid_until = datetime.fromtimestamp(0)
         # Library cache
         self.episode_parts = {}
@@ -87,6 +88,16 @@ class PlexServerCache():
     def set_instance_users(self, instance_users):
         self._instance_users = copy.deepcopy(instance_users)
         self._instance_users_valid_until = datetime.now() + timedelta(hours=12)
+        for user in self._instance_users:
+            if str(user.id) in self._instance_user_tokens:
+                continue
+            self._instance_user_tokens[str(user.id)] = user.get_token(self._plex.unique_id)
+
+    def get_instance_user_token(self, user_id):
+        return self._instance_user_tokens.get(str(user_id), None)
+
+    def set_instance_user_token(self, user_id, token):
+        self._instance_user_tokens[str(user_id)] = token
 
     def _get_cache_file_path(self):
         data_dir = self._plex.config.get("data_dir")

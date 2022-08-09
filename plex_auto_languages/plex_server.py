@@ -1,4 +1,5 @@
 import time
+import requests
 import itertools
 from typing import Union, Callable
 from datetime import datetime, timedelta
@@ -13,6 +14,7 @@ from plexapi.server import PlexServer as BasePlexServer
 from plex_auto_languages.utils.logger import get_logger
 from plex_auto_languages.utils.configuration import Configuration
 from plex_auto_languages.plex_alert_handler import PlexAlertHandler
+from plex_auto_languages.plex_alert_listener import PlexAlertListener
 from plex_auto_languages.track_changes import TrackChanges, NewOrUpdatedTrackChanges
 from plex_auto_languages.utils.notifier import Notifier
 from plex_auto_languages.plex_server_cache import PlexServerCache
@@ -25,9 +27,10 @@ logger = get_logger()
 
 class UnprivilegedPlexServer():
 
-    def __init__(self, url: str, token: str):
+    def __init__(self, url: str, token: str, session: requests.Session = requests.Session()):
+        self._session = session
         self._plex_url = url
-        self._plex = self._get_server(url, token)
+        self._plex = self._get_server(url, token, self._session)
 
     @property
     def connected(self):
@@ -44,9 +47,9 @@ class UnprivilegedPlexServer():
         return self._plex.machineIdentifier
 
     @staticmethod
-    def _get_server(url, token):
+    def _get_server(url: str, token: str, session: requests.Session):
         try:
-            return BasePlexServer(url, token)
+            return BasePlexServer(url, token, session=session)
         except (RequestsConnectionError, Unauthorized):
             return None
 
@@ -120,10 +123,10 @@ class PlexServer(UnprivilegedPlexServer):
         return self.connected and self._alert_listener is not None and self._alert_listener.is_alive()
 
     @staticmethod
-    def _get_server(url: str, token: str, max_tries: int = 5000):
+    def _get_server(url: str, token: str, session: requests.Session, max_tries: int = 5000):
         for _ in range(max_tries):
             try:
-                return BasePlexServer(url, token)
+                return BasePlexServer(url, token, session=session)
             except RequestsConnectionError:
                 logger.warning("ConnectionError: Unable to connect to Plex server, retrying...")
             except Unauthorized:
@@ -146,7 +149,7 @@ class PlexServer(UnprivilegedPlexServer):
         trigger_on_scan = self.config.get("trigger_on_scan")
         trigger_on_activity = self.config.get("trigger_on_activity")
         self._alert_handler = PlexAlertHandler(self, trigger_on_play, trigger_on_scan, trigger_on_activity)
-        self._alert_listener = AlertListener(self._plex, self._alert_handler, error_callback)
+        self._alert_listener = PlexAlertListener(self._plex, self._alert_handler, error_callback)
         logger.info("Starting alert listener")
         self._alert_listener.start()
 
@@ -177,8 +180,12 @@ class PlexServer(UnprivilegedPlexServer):
         if len(matching_users) == 0:
             logger.error(f"Unable to find user with id '{user_id}'")
             return None
-        user_token = matching_users[0].get_token(self._plex.machineIdentifier)
-        user_plex = UnprivilegedPlexServer(self._plex_url, user_token)
+        user = matching_users[0]
+        user_token = self.cache.get_instance_user_token(user.id)
+        if user_token is None:
+            user_token = user.get_token(self.unique_id)
+            self.cache.set_instance_user_token(user.id, user_token)
+        user_plex = UnprivilegedPlexServer(self._plex_url, user_token, session=self._session)
         if not user_plex.connected:
             logger.error(f"Connection to the Plex server failed for user '{matching_users[0].name}'")
             return None

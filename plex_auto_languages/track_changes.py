@@ -165,7 +165,7 @@ class TrackChanges():
             match_forced_only = True
             language_code = self._audio_stream.languageCode
         else:
-            match_forced_only = False
+            match_forced_only = self._subtitle_stream.forced
             language_code = self._subtitle_stream.languageCode
         # We only want stream with the same language code
         streams = [s for s in subtitle_streams if s.languageCode == language_code]

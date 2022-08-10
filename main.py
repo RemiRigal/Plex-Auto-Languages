@@ -90,6 +90,9 @@ class PlexAutoLanguages():
     def alert_listener_error_callback(self, error: Exception):
         if isinstance(error, WebSocketConnectionClosedException):
             logger.warning("The Plex server closed the websocket connection")
+        elif isinstance(error, UnicodeDecodeError):
+            logger.debug("Ignoring a websocket payload that could not be decoded")
+            return
         else:
             logger.error("Alert listener had an unexpected error")
             logger.error(error, exc_info=True)

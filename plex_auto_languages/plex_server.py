@@ -7,7 +7,6 @@ from requests import ConnectionError as RequestsConnectionError
 from plexapi.media import MediaPart
 from plexapi.library import ShowSection
 from plexapi.video import Episode, Show
-from plexapi.alert import AlertListener
 from plexapi.exceptions import NotFound, Unauthorized, BadRequest
 from plexapi.server import PlexServer as BasePlexServer
 

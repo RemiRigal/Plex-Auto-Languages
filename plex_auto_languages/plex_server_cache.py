@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import isoparse
 
 from plex_auto_languages.utils.logger import get_logger
-from plex_auto_languages.utils.json import DateTimeEncoder
+from plex_auto_languages.utils.json_encoders import DateTimeEncoder
 
 if TYPE_CHECKING:
     from plex_auto_languages.plex_server import PlexServer

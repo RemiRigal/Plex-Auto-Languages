@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 
-from plex_auto_languages.utils.json import DateTimeEncoder
+from plex_auto_languages.utils.json_encoders import DateTimeEncoder
 
 
 def test_json():

@@ -126,13 +126,15 @@ class PlexServer(UnprivilegedPlexServer):
         for _ in range(max_tries):
             try:
                 return BasePlexServer(url, token, session=session)
-            except Unauthorized:
+            except Unauthorized as e:
                 logger.warning("Unauthorized: make sure your credentials are correct. Retrying to connect to Plex server...")
-            except (RequestsConnectionError, BadRequest):
+                logger.debug(e, exc_info=True)
+            except (RequestsConnectionError, BadRequest) as e:
                 logger.warning("ConnectionError: Unable to connect to Plex server, retrying...")
+                logger.debug(e, exc_info=True)
             except Exception as e:
                 logger.error("Unexpected error during connection to Plex")
-                logger.exception(e)
+                logger.error(e, exc_info=True)
             time.sleep(5)
         return None
 

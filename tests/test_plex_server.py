@@ -43,17 +43,17 @@ def test_recently_added(plex, episode):
 
 def test_last_watched_or_first(plex, episode):
     show = episode.show()
-    show.markUnwatched()
+    show.markUnplayed()
     first_episode = show.episode(season=1, episode=1)
     last_watched_or_first = plex.get_last_watched_or_first_episode(show)
     assert first_episode == last_watched_or_first
 
     last_episode = show.episodes()[-1]
-    last_episode.markWatched()
+    last_episode.markPlayed()
     last_watched_or_first = plex.get_last_watched_or_first_episode(show)
     assert last_episode == last_watched_or_first
 
-    show.markUnwatched()
+    show.markUnplayed()
     with patch.object(Show, "episodes", return_value=[]):
         last_watched_or_first = plex.get_last_watched_or_first_episode(show)
         assert last_watched_or_first is None

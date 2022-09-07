@@ -99,7 +99,7 @@ class PlexAutoLanguages():
         self.must_stop = True
 
     def scheduler_callback(self):
-        if self.plex or not self.plex.is_alive:
+        if self.plex is None or not self.plex.is_alive:
             return
         logger.info("Starting scheduler task")
         self.plex.start_deep_analysis()

@@ -66,6 +66,8 @@ class PlexAutoLanguages():
         while not self.stop_signal:
             self.must_stop = False
             self.init()
+            if self.plex is None:
+                break
             self.plex.start_alert_listener(self.alert_listener_error_callback)
             self.alive = True
             count = 0

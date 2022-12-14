@@ -2,9 +2,12 @@ import os
 import pytest
 import plexapi
 
+from plex_auto_languages.utils.logger import init_logger
 from plex_auto_languages.plex_server import PlexServer
 from plex_auto_languages.utils.configuration import Configuration
 
+
+init_logger()
 
 SERVER_BASEURL = plexapi.CONFIG.get("auth.server_baseurl")
 SERVER_TOKEN = plexapi.CONFIG.get("auth.server_token")

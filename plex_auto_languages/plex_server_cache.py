@@ -107,11 +107,17 @@ class PlexServerCache():
         return os.path.join(cache_dir, self._plex.unique_id)
 
     def _load(self):
-        if not os.path.exists(self._cache_file_path):
+        if not os.path.exists(self._cache_file_path) or not os.path.isfile(self._cache_file_path):
             return False
         logger.debug("[Cache] Loading server cache from file")
-        with open(self._cache_file_path, "r", encoding="utf-8") as stream:
-            cache = json.load(stream)
+        try:
+            with open(self._cache_file_path, "r", encoding="utf-8") as stream:
+                cache = json.load(stream)
+        except json.JSONDecodeError:
+            logger.warning("[Cache] The cache is corrupted, clearing the cache before trying again")
+            if os.path.exists(self._cache_file_path) and os.path.isfile(self._cache_file_path):
+                os.remove(self._cache_file_path)
+            return False
         self.newly_updated = cache.get("newly_updated", self.newly_updated)
         self.newly_updated = {key: isoparse(value) for key, value in self.newly_updated.items()}
         self.newly_added = cache.get("newly_added", self.newly_added)

@@ -56,6 +56,14 @@ def test_load_save():
 
             assert old_episode_parts == cache.episode_parts
 
+            with open(mocked_path, "w") as stream:
+                stream.write("Not a JSON object")
+            assert os.path.exists(mocked_path)
+            mocked_refresh.reset_mock()
+            cache = PlexServerCache(None)
+            mocked_refresh.assert_called_once()
+            assert not os.path.exists(mocked_path)
+
 
 def test_instance_users(plex):
     assert plex.cache.get_instance_users() is None

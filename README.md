@@ -1,6 +1,6 @@
 # Plex Auto Languages
 
-[![GitHub Build](https://img.shields.io/github/workflow/status/RemiRigal/Plex-Auto-Languages/dockerhub_build_push?style=flat-square)](https://github.com/RemiRigal/Plex-Auto-Languages/actions/workflows/dockerhub_build_push.yml)
+[![GitHub Build](https://img.shields.io/github/actions/workflow/status/RemiRigal/Plex-Auto-Languages/dockerhub_build_push.yml?branch=master&style=flat-square)](https://github.com/RemiRigal/Plex-Auto-Languages/actions/workflows/dockerhub_build_push.yml)
 [![Docker Pulls](https://img.shields.io/docker/pulls/remirigal/plex-auto-languages?style=flat-square)](https://hub.docker.com/r/remirigal/plex-auto-languages)
 [![Version](https://img.shields.io/github/v/tag/RemiRigal/Plex-Auto-Languages?style=flat-square&label=version)](https://github.com/RemiRigal/Plex-Auto-Languages/tags)
 [![Codecov](https://img.shields.io/codecov/c/gh/RemiRigal/Plex-Auto-Languages/master?style=flat-square&logo=codecov)](https://app.codecov.io/gh/RemiRigal/Plex-Auto-Languages)

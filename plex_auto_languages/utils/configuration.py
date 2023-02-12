@@ -5,6 +5,7 @@ import pathlib
 import logging
 from collections.abc import Mapping
 import yaml
+import warnings
 
 from plex_auto_languages.utils.logger import get_logger
 from plex_auto_languages.exceptions import InvalidConfiguration
@@ -51,6 +52,9 @@ def get_data_directory(app_name: str):
         return str(home / f".local/share/{app_name}")
     if sys.platform == "darwin":
         return str(home / f"Library/Application Support/{app_name}")
+    if os.uname()[0] == "FreeBSD":
+        return str(home / f".local/share/{app_name}")
+    warnings.warn("Warning: Unsupported Operating System!")
     return None
 
 

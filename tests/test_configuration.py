@@ -5,6 +5,7 @@ import shutil
 import pytest
 import logging
 import tempfile
+import warnings
 from unittest.mock import patch
 
 from plex_auto_languages.exceptions import InvalidConfiguration
@@ -29,8 +30,14 @@ def test_get_data_directory():
         sys.platform = "darwin"
         assert get_data_directory("test") == os.path.expanduser("~/Library/Application Support/test")
 
+        sys.platform = "freebsdxx"
+        with patch("os.uname", return_value=["FreeBSD"]):
+            assert get_data_directory("test") == os.path.expanduser("~/.local/share/test")
+
         sys.platform = "unknown_platform"
-        assert get_data_directory("test") is None
+        with patch.object(warnings, "warn") as mocked_warn:
+            assert get_data_directory("test") is None
+            mocked_warn.assert_called_once()
 
     with patch("plex_auto_languages.utils.configuration.is_docker", return_value=True):
         sys.platform = "win32"
@@ -41,6 +48,10 @@ def test_get_data_directory():
 
         sys.platform = "darwin"
         assert get_data_directory("test") == "/config"
+
+        sys.platform = "freebsdxx"
+        with patch("os.uname", return_value=["FreeBSD"]):
+            assert get_data_directory("test") == "/config"
 
         sys.platform = "unknown_platform"
         assert get_data_directory("test") == "/config"

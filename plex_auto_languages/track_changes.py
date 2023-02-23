@@ -83,9 +83,15 @@ class TrackChanges():
                     self._changes.append((episode, part, AudioStream.STREAMTYPE, matching_audio_stream))
                 # Subtitle stream
                 matching_subtitle_stream = self._match_subtitle_stream(part.subtitleStreams())
-                if current_subtitle_stream is not None and matching_subtitle_stream is None:
-                    self._changes.append((episode, part, SubtitleStream.STREAMTYPE, None))
-                if matching_subtitle_stream is not None and \
+                # removed code
+                # if current_subtitle_stream is not None and matching_subtitle_stream is None:
+                #     self._changes.append((episode, part, SubtitleStream.STREAMTYPE, None))
+
+                # my modification here: if selected subs is "None" AND there are other options for subtitles, then we sync "None"
+                if self._subtitle_stream is None:
+                    if len(self._reference.subtitleStreams()) > 0:
+                        self._changes.append((episode, part, SubtitleStream.STREAMTYPE, None))
+                elif matching_subtitle_stream is not None and \
                         (current_subtitle_stream is None or matching_subtitle_stream.id != current_subtitle_stream.id):
                     self._changes.append((episode, part, SubtitleStream.STREAMTYPE, matching_subtitle_stream))
         self._update_description(episodes)

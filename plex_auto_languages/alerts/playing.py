@@ -63,6 +63,9 @@ class PlexPlaying(PlexAlert):
             logger.debug(f"[Play Session] End of session {self.session_key} for user {user_id}")
             del plex.cache.session_states[self.session_key]
             del plex.cache.user_clients[self.client_identifier]
+        # my modification here: only updates on stopped, not playing
+        else: 
+            return
 
         # Skip if selected streams are unchanged
         item.reload()

@@ -59,7 +59,7 @@ class UnprivilegedPlexServer():
             return None
 
     def episodes(self):
-        return self._plex.library.all(libtype="episode", container_size=1024)
+        return self._plex.library.all(libtype="episode", container_size=1000)
 
     def get_recently_added_episodes(self, minutes: int):
         episodes = []

@@ -42,7 +42,7 @@ class PlexAutoLanguages():
         self.set_signal_handlers()
 
     def init(self):
-        self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"), self.notifier, self.config)
+        self.plex = PlexServer(self.config.get("plex.url"), self.config.get("plex.token"), self.notifier, self.config, timeout=60)
 
     def is_ready(self):
         return self.alive

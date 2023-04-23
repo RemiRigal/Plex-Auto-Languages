@@ -1,7 +1,10 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from time import sleep
 from queue import Queue, Empty
 from threading import Thread, Event
+from requests.exceptions import ReadTimeout
+from urllib3.exceptions import ReadTimeoutError
 from plex_auto_languages.alerts import PlexActivity, PlexTimeline, PlexPlaying, PlexStatus
 from plex_auto_languages.utils.logger import get_logger
 
@@ -22,7 +25,7 @@ class PlexAlertHandler():
         self._alerts_queue = Queue()
         self._stop_event = Event()
         self._processor_thread = Thread(target=self._process_alerts)
-        self._processor_thread.setDaemon(True)
+        self._processor_thread.daemon = True
         self._processor_thread.start()
 
     def stop(self):
@@ -54,14 +57,23 @@ class PlexAlertHandler():
 
     def _process_alerts(self):
         logger.debug("Starting alert processing thread")
+        retry_counter = 0
         while not self._stop_event.is_set():
             try:
-                alert = self._alerts_queue.get(True, 1)
+                if retry_counter == 0:
+                    alert = self._alerts_queue.get(True, 1)
                 try:
                     alert.process(self._plex)
+                    retry_counter = 0
+                except (ReadTimeout, ReadTimeoutError):
+                    retry_counter += 1
+                    logger.warning(f"ReadTimeout while processing {alert.TYPE} alert, retrying (attempt {retry_counter})...")
+                    logger.debug(alert.message)
+                    sleep(1)
                 except Exception:
                     logger.exception(f"Unable to process {alert.TYPE}")
                     logger.debug(alert.message)
+                    retry_counter = 0
             except Empty:
                 pass
         logger.debug("Stopping alert processing thread")

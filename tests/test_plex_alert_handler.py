@@ -2,6 +2,7 @@ import time
 from queue import Queue
 from logging import Logger
 from unittest.mock import patch
+from requests.exceptions import ReadTimeout
 
 from plex_auto_languages.plex_alert_handler import PlexAlertHandler
 from plex_auto_languages.alerts import PlexStatus, PlexPlaying, PlexActivity, PlexTimeline
@@ -64,6 +65,13 @@ def test_alert_processing():
 
     status_alert = PlexStatus({"type": PlexStatus.TYPE, "StatusNotification": [{"title": "Library scan complete"}]})
     with patch.object(PlexStatus, "process", side_effect=Exception()) as mocked_process:
+        with patch.object(Logger, "debug") as mocked_debug:
+            handler._alerts_queue.put(status_alert)
+            time.sleep(1)
+            mocked_debug.assert_called_with(status_alert.message)
+
+    status_alert = PlexStatus({"type": PlexStatus.TYPE, "StatusNotification": [{"title": "Library scan complete"}]})
+    with patch.object(PlexStatus, "process", side_effect=ReadTimeout()) as mocked_process:
         with patch.object(Logger, "debug") as mocked_debug:
             handler._alerts_queue.put(status_alert)
             time.sleep(1)

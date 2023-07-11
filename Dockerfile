@@ -2,6 +2,7 @@ FROM python:3.8-alpine
 
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
+ENV CONTAINERIZED True
 
 RUN apk add --update curl tini && \
     rm -rf /var/cache/apk/*

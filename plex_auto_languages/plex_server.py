@@ -213,6 +213,12 @@ class PlexServer(UnprivilegedPlexServer):
             return None
         return matching_users[0]
 
+    def should_ignore_show(self, show: Show):
+        for label in show.labels:
+            if label.tag and label.tag in self.config.get("ignore_tags"):
+                return True
+        return False
+
     def process_new_or_updated_episode(self, item_id: Union[int, str], event_type: EventType, new: bool):
         track_changes = NewOrUpdatedTrackChanges(event_type, new)
         for user_id in self.get_all_user_ids():
@@ -280,11 +286,15 @@ class PlexServer(UnprivilegedPlexServer):
         # Scan library
         added, updated = self.cache.refresh_library_cache()
         for item in added:
+            if self.should_ignore_show(item.show()):
+                continue
             if not self.cache.should_process_recently_added(item.key, item.addedAt):
                 continue
             logger.info(f"[Scheduler] Processing newly added episode {self.get_episode_short_name(item)}")
             self.process_new_or_updated_episode(item.key, EventType.SCHEDULER, True)
         for item in updated:
+            if self.should_ignore_show(item.show()):
+                continue
             if not self.cache.should_process_recently_updated(item.key):
                 continue
             logger.info(f"[Scheduler] Processing updated episode {self.get_episode_short_name(item)}")

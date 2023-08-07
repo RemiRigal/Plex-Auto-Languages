@@ -117,6 +117,9 @@ class Configuration():
         if self.get("update_strategy") not in ["all", "next"]:
             logger.error("The 'update_strategy' parameter must be either 'all' or 'next'")
             raise InvalidConfiguration
+        if not isinstance(self.get("ignore_tags"), list):
+            logger.error("The 'ignore_tags' parameter must be a list")
+            raise InvalidConfiguration
         if self.get("scheduler.enable") and not re.match(r"^\d{2}:\d{2}$", self.get("scheduler.schedule_time")):
             logger.error("A valid 'schedule_time' parameter with the format 'HH:MM' is required (ex: 02:30)")
             raise InvalidConfiguration

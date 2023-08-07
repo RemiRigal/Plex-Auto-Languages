@@ -126,6 +126,10 @@ plexautolanguages:
   # It is recommended to disable this parameter if you have a large TV Show library (10k+ episodes)
   refresh_library_on_scan: true
 
+  # PlexAutoLanguages will ignore shows with any of the following Plex tags
+  ignore_tags:
+    - PAL_IGNORE
+
   # Plex configuration
   plex:
     # A valid Plex URL (required)

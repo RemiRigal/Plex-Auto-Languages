@@ -122,6 +122,16 @@ def test_get_user_by_id(plex):
     assert user is None
 
 
+def test_should_ignore_show(plex, episode):
+    plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+
+    episode.show().addLabel("PAL_IGNORE")
+    assert plex.should_ignore_show(episode.show()) is True
+
+    episode.show().removeLabel("PAL_IGNORE")
+    assert plex.should_ignore_show(episode.show()) is False
+
+
 def test_get_all_user_ids(plex):
     user_ids = plex.get_all_user_ids()
     assert len(user_ids) == 2

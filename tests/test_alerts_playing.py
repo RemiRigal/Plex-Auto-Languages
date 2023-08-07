@@ -26,7 +26,16 @@ def test_playing(plex, episode):
     plex.cache.user_clients["some_identifier"] = (plex.user_id, plex.username)
 
     with patch.object(PlexServer, "change_tracks") as mocked_change_tracks:
+        # Not called because the show is ignored
+        mocked_change_tracks.reset_mock()
+        plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+        episode.show().addLabel("PAL_IGNORE")
+        playing.process(plex)
+        mocked_change_tracks.assert_not_called()
+        episode.show().removeLabel("PAL_IGNORE")
+
         # Default behavior
+        mocked_change_tracks.reset_mock()
         playing.process(plex)
         mocked_change_tracks.assert_called_once_with(plex.username, episode, EventType.PLAY_OR_ACTIVITY)
         plex.cache.default_streams.clear()

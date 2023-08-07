@@ -43,6 +43,16 @@ def test_activity(plex, episode):
         mocked_change_tracks.assert_called_once_with(plex.username, episode, EventType.PLAY_OR_ACTIVITY)
         plex.cache.recent_activities.clear()
 
+        # Not called because the show is ignored
+        mocked_change_tracks.reset_mock()
+        plex.cache.recent_activities.clear()
+        plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+        episode.show().addLabel("PAL_IGNORE")
+        activity.process(plex)
+        mocked_change_tracks.assert_not_called()
+        episode.show().removeLabel("PAL_IGNORE")
+        activity._message = copy.deepcopy(activity_message)
+
         # Not called because the event is 'started'
         mocked_change_tracks.reset_mock()
         activity._message["event"] = "started"

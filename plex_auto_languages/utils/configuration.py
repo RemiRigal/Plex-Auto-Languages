@@ -71,6 +71,7 @@ class Configuration():
             self._override_from_config_file(user_config_path)
         self._override_from_env()
         self._override_plex_token_from_secret()
+        self._postprocess_config()
         self._validate_config()
         self._add_system_config()
         if self.get("debug"):
@@ -104,6 +105,11 @@ class Configuration():
             plex_token = stream.readline().strip()
         self._config["plex"]["token"] = plex_token
 
+    def _postprocess_config(self):
+        ignore_tags_config = self.get("ignore_tags")
+        if isinstance(ignore_tags_config, str):
+            self._config["ignore_tags"] = ignore_tags_config.split(",")
+
     def _validate_config(self):
         if self.get("plex.url") == "":
             logger.error("A Plex URL is required")
@@ -118,7 +124,7 @@ class Configuration():
             logger.error("The 'update_strategy' parameter must be either 'all' or 'next'")
             raise InvalidConfiguration
         if not isinstance(self.get("ignore_tags"), list):
-            logger.error("The 'ignore_tags' parameter must be a list")
+            logger.error("The 'ignore_tags' parameter must be a list or a string-based comma separated list")
             raise InvalidConfiguration
         if self.get("scheduler.enable") and not re.match(r"^\d{2}:\d{2}$", self.get("scheduler.schedule_time")):
             logger.error("A valid 'schedule_time' parameter with the format 'HH:MM' is required (ex: 02:30)")

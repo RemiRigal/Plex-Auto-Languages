@@ -110,7 +110,8 @@ def test_configuration_user_config():
             "plex": {
                 "url": "http://localhost:32400",
                 "token": "token"
-            }
+            },
+            "ignore_tags": "TAG_1,TAG_2"
         }
     }
     fd, path = tempfile.mkstemp()
@@ -120,6 +121,10 @@ def test_configuration_user_config():
         config = Configuration(path)
         assert config.get("plex.url") == "http://localhost:32400"
         assert config.get("plex.token") == "token"
+        assert isinstance(config.get("ignore_tags"), list)
+        assert len(config.get("ignore_tags")) == 2
+        assert "TAG_1" in config.get("ignore_tags")
+        assert "TAG_2" in config.get("ignore_tags")
     finally:
         os.remove(path)
 
@@ -174,6 +179,20 @@ def test_configuration_unvalidated():
     with pytest.raises(InvalidConfiguration):
         _ = Configuration(None)
     del os.environ["UPDATE_STRATEGY"]
+
+    config_dict = {
+        "plexautolanguages": {
+            "ignore_tags": 12
+        }
+    }
+    fd, path = tempfile.mkstemp()
+    try:
+        with open(fd, "w", encoding="utf-8") as stream:
+            yaml.dump(config_dict, stream)
+        with pytest.raises(InvalidConfiguration):
+            _ = Configuration(path)
+    finally:
+        os.remove(path)
 
     os.environ["SCHEDULER_ENABLE"] = "true"
     os.environ["SCHEDULER_SCHEDULE_TIME"] = "12h30"

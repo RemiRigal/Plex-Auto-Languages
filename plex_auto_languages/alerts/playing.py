@@ -51,6 +51,11 @@ class PlexPlaying(PlexAlert):
         if item is None or not isinstance(item, Episode):
             return
 
+        # Skip if the show should be ignored
+        if plex.should_ignore_show(item.show()):
+            logger.debug(f"[Play Session] Ignoring episode {item} due to Plex show tags")
+            return
+
         # Skip is the session state is unchanged
         if self.session_key in plex.cache.session_states and plex.cache.session_states[self.session_key] == self.session_state:
             return

@@ -35,6 +35,10 @@ class PlexStatus(PlexAlert):
         if len(added) > 0:
             logger.debug(f"[Status] Found {len(added)} newly added episode(s)")
             for item in added:
+                # Check if the item should be ignored
+                if plex.should_ignore_show(item.show()):
+                    continue
+
                 # Check if the item has already been processed
                 if not plex.cache.should_process_recently_added(item.key, item.addedAt):
                     continue
@@ -47,6 +51,10 @@ class PlexStatus(PlexAlert):
         if len(updated) > 0:
             logger.debug(f"[Status] Found {len(updated)} updated episode(s)")
             for item in updated:
+                # Check if the item should be ignored
+                if plex.should_ignore_show(item.show()):
+                    continue
+
                 # Check if the item has already been processed
                 if not plex.cache.should_process_recently_updated(item.key):
                     continue

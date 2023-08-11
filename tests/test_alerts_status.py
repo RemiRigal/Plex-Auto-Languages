@@ -14,11 +14,20 @@ def test_status(plex, episode):
     status = PlexStatus(copy.deepcopy(status_message))
     assert status.title == "Library scan complete"
 
+    plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+
     with patch.object(PlexServer, "process_new_or_updated_episode") as mocked_process:
 
         plex.config._config["refresh_library_on_scan"] = True
 
         with patch.object(PlexServerCache, "refresh_library_cache", return_value=([episode], [])):
+            # Not called because the show should be ignored
+            mocked_process.reset_mock()
+            episode.show().addLabel("PAL_IGNORE")
+            status.process(plex)
+            mocked_process.assert_not_called()
+            episode.show().removeLabel("PAL_IGNORE")
+
             # Default behavior for new episode
             mocked_process.reset_mock()
             status.process(plex)
@@ -31,6 +40,13 @@ def test_status(plex, episode):
             plex.cache.newly_added.clear()
 
         with patch.object(PlexServerCache, "refresh_library_cache", return_value=([], [episode])):
+            # Not called because the show should be ignored
+            mocked_process.reset_mock()
+            episode.show().addLabel("PAL_IGNORE")
+            status.process(plex)
+            mocked_process.assert_not_called()
+            episode.show().removeLabel("PAL_IGNORE")
+
             # Default behavior for updated episode
             mocked_process.reset_mock()
             status.process(plex)

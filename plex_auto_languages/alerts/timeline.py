@@ -53,6 +53,11 @@ class PlexTimeline(PlexAlert):
         if item is None or not isinstance(item, Episode):
             return
 
+        # Skip if the show should be ignored
+        if plex.should_ignore_show(item.show()):
+            logger.debug(f"[Timeline] Ignoring episode {item} due to Plex show tags")
+            return
+
         # Check if the item has been added recently
         if item.addedAt < datetime.now() - timedelta(minutes=5):
             return

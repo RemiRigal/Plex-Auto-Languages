@@ -21,11 +21,21 @@ def test_timeline(plex, episode):
     assert timeline.state == 5
     assert timeline.entry_type == 0
 
+    plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+
     with patch.object(PlexServer, "process_new_or_updated_episode") as mocked_process:
         fake_recent_episode = copy.deepcopy(episode)
         fake_recent_episode.addedAt = datetime.now()
         with patch.object(PlexServer, "fetch_item", return_value=fake_recent_episode):
+            # Not called because the show should be ignored
+            mocked_process.reset_mock()
+            episode.show().addLabel("PAL_IGNORE")
+            timeline.process(plex)
+            mocked_process.assert_not_called()
+            episode.show().removeLabel("PAL_IGNORE")
+
             # Default behavior
+            mocked_process.reset_mock()
             timeline.process(plex)
             mocked_process.assert_called_once_with(item_id, EventType.NEW_EPISODE, True)
 

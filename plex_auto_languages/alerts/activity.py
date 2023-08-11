@@ -58,6 +58,11 @@ class PlexActivity(PlexAlert):
         if item is None or not isinstance(item, Episode):
             return
 
+        # Skip if the show should be ignored
+        if plex.should_ignore_show(item.show()):
+            logger.debug(f"[Activity] Ignoring episode {item} due to Plex show tags")
+            return
+
         # Skip if this item has already been seen in the last 3 seconds
         activity_key = (self.user_id, self.item_key)
         if activity_key in plex.cache.recent_activities and \

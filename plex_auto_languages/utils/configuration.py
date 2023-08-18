@@ -43,22 +43,6 @@ def is_docker():
     )
 
 
-def get_data_directory(app_name: str):
-    home = pathlib.Path.home()
-    if is_docker():
-        return "/config"
-    if sys.platform == "win32":
-        return str(home / f"AppData/Roaming/{app_name}")
-    if sys.platform == "linux":
-        return str(home / f".local/share/{app_name}")
-    if sys.platform == "darwin":
-        return str(home / f"Library/Application Support/{app_name}")
-    if os.uname()[0] == "FreeBSD":
-        return str(home / f".local/share/{app_name}")
-    warnings.warn("Warning: Unsupported Operating System!")
-    return None
-
-
 class Configuration():
 
     def __init__(self, user_config_path: str):
@@ -133,6 +117,24 @@ class Configuration():
 
     def _add_system_config(self):
         self._config["docker"] = is_docker()
-        self._config["data_dir"] = get_data_directory("PlexAutoLanguages")
+        self._config["data_dir"] = self._get_data_directory("PlexAutoLanguages")
         if not os.path.exists(self._config["data_dir"]):
             os.makedirs(self._config["data_dir"])
+
+    def _get_data_directory(self, app_name: str):
+        home = pathlib.Path.home()
+        data_path = self.get("data_path")
+        if data_path is not None and data_path != "" and os.path.exists(data_path) and os.path.isdir(data_path):
+            return os.path.join(data_path, app_name)
+        if is_docker():
+            return "/config"
+        if sys.platform == "win32":
+            return str(home / f"AppData/Roaming/{app_name}")
+        if sys.platform == "linux":
+            return str(home / f".local/share/{app_name}")
+        if sys.platform == "darwin":
+            return str(home / f"Library/Application Support/{app_name}")
+        if os.uname()[0] == "FreeBSD":
+            return str(home / f".local/share/{app_name}")
+        warnings.warn("Warning: Unsupported Operating System!")
+        return None

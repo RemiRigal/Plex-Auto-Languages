@@ -21,7 +21,7 @@ def test_timeline(plex, episode):
     assert timeline.state == 5
     assert timeline.entry_type == 0
 
-    plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+    plex.config._config["ignore_labels"] = ["PAL_IGNORE"]
 
     with patch.object(PlexServer, "process_new_or_updated_episode") as mocked_process:
         fake_recent_episode = copy.deepcopy(episode)

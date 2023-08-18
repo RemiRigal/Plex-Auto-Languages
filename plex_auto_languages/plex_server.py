@@ -215,7 +215,7 @@ class PlexServer(UnprivilegedPlexServer):
 
     def should_ignore_show(self, show: Show):
         for label in show.labels:
-            if label.tag and label.tag in self.config.get("ignore_tags"):
+            if label.tag and label.tag in self.config.get("ignore_labels"):
                 return True
         return False
 

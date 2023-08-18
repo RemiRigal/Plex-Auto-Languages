@@ -55,7 +55,7 @@ class PlexTimeline(PlexAlert):
 
         # Skip if the show should be ignored
         if plex.should_ignore_show(item.show()):
-            logger.debug(f"[Timeline] Ignoring episode {item} due to Plex show tags")
+            logger.debug(f"[Timeline] Ignoring episode {item} due to Plex show labels")
             return
 
         # Check if the item has been added recently

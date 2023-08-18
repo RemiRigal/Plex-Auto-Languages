@@ -46,7 +46,7 @@ def test_activity(plex, episode):
         # Not called because the show is ignored
         mocked_change_tracks.reset_mock()
         plex.cache.recent_activities.clear()
-        plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+        plex.config._config["ignore_labels"] = ["PAL_IGNORE"]
         episode.show().addLabel("PAL_IGNORE")
         activity.process(plex)
         mocked_change_tracks.assert_not_called()

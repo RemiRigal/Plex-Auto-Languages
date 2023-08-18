@@ -53,7 +53,7 @@ class PlexPlaying(PlexAlert):
 
         # Skip if the show should be ignored
         if plex.should_ignore_show(item.show()):
-            logger.debug(f"[Play Session] Ignoring episode {item} due to Plex show tags")
+            logger.debug(f"[Play Session] Ignoring episode {item} due to Plex show labels")
             return
 
         # Skip is the session state is unchanged

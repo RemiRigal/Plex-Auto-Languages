@@ -14,7 +14,7 @@ def test_status(plex, episode):
     status = PlexStatus(copy.deepcopy(status_message))
     assert status.title == "Library scan complete"
 
-    plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+    plex.config._config["ignore_labels"] = ["PAL_IGNORE"]
 
     with patch.object(PlexServer, "process_new_or_updated_episode") as mocked_process:
 

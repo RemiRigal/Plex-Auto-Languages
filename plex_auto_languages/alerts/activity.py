@@ -60,7 +60,7 @@ class PlexActivity(PlexAlert):
 
         # Skip if the show should be ignored
         if plex.should_ignore_show(item.show()):
-            logger.debug(f"[Activity] Ignoring episode {item} due to Plex show tags")
+            logger.debug(f"[Activity] Ignoring episode {item} due to Plex show labels")
             return
 
         # Skip if this item has already been seen in the last 3 seconds

@@ -106,9 +106,9 @@ class Configuration():
         self._config["plex"]["token"] = plex_token
 
     def _postprocess_config(self):
-        ignore_tags_config = self.get("ignore_tags")
-        if isinstance(ignore_tags_config, str):
-            self._config["ignore_tags"] = ignore_tags_config.split(",")
+        ignore_labels_config = self.get("ignore_labels")
+        if isinstance(ignore_labels_config, str):
+            self._config["ignore_labels"] = ignore_labels_config.split(",")
 
     def _validate_config(self):
         if self.get("plex.url") == "":
@@ -123,8 +123,8 @@ class Configuration():
         if self.get("update_strategy") not in ["all", "next"]:
             logger.error("The 'update_strategy' parameter must be either 'all' or 'next'")
             raise InvalidConfiguration
-        if not isinstance(self.get("ignore_tags"), list):
-            logger.error("The 'ignore_tags' parameter must be a list or a string-based comma separated list")
+        if not isinstance(self.get("ignore_labels"), list):
+            logger.error("The 'ignore_labels' parameter must be a list or a string-based comma separated list")
             raise InvalidConfiguration
         if self.get("scheduler.enable") and not re.match(r"^\d{2}:\d{2}$", self.get("scheduler.schedule_time")):
             logger.error("A valid 'schedule_time' parameter with the format 'HH:MM' is required (ex: 02:30)")

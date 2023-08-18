@@ -111,7 +111,7 @@ def test_configuration_user_config():
                 "url": "http://localhost:32400",
                 "token": "token"
             },
-            "ignore_tags": "TAG_1,TAG_2"
+            "ignore_labels": "LABEL_1,LABEL_2"
         }
     }
     fd, path = tempfile.mkstemp()
@@ -121,10 +121,10 @@ def test_configuration_user_config():
         config = Configuration(path)
         assert config.get("plex.url") == "http://localhost:32400"
         assert config.get("plex.token") == "token"
-        assert isinstance(config.get("ignore_tags"), list)
-        assert len(config.get("ignore_tags")) == 2
-        assert "TAG_1" in config.get("ignore_tags")
-        assert "TAG_2" in config.get("ignore_tags")
+        assert isinstance(config.get("ignore_labels"), list)
+        assert len(config.get("ignore_labels")) == 2
+        assert "LABEL_1" in config.get("ignore_labels")
+        assert "LABEL_2" in config.get("ignore_labels")
     finally:
         os.remove(path)
 
@@ -182,7 +182,7 @@ def test_configuration_unvalidated():
 
     config_dict = {
         "plexautolanguages": {
-            "ignore_tags": 12
+            "ignore_labels": 12
         }
     }
     fd, path = tempfile.mkstemp()

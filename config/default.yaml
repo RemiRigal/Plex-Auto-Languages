@@ -5,7 +5,7 @@ plexautolanguages:
   trigger_on_scan: true
   trigger_on_activity: false
   refresh_library_on_scan: true
-  ignore_tags:
+  ignore_labels:
     - PAL_IGNORE
 
   plex:

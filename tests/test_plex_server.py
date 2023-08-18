@@ -123,7 +123,7 @@ def test_get_user_by_id(plex):
 
 
 def test_should_ignore_show(plex, episode):
-    plex.config._config["ignore_tags"] = ["PAL_IGNORE"]
+    plex.config._config["ignore_labels"] = ["PAL_IGNORE"]
 
     episode.show().addLabel("PAL_IGNORE")
     assert plex.should_ignore_show(episode.show()) is True

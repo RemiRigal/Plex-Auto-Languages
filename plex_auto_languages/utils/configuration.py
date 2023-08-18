@@ -121,6 +121,7 @@ class Configuration():
     def _add_system_config(self):
         self._config["docker"] = is_docker()
         self._config["data_dir"] = self._get_data_directory("PlexAutoLanguages")
+        logger.warn(f"The data dir is set to {self._config['data_dir']} ({self._get_data_directory('PlexAutoLanguages')})")
         if not os.path.exists(self._config["data_dir"]):
             os.makedirs(self._config["data_dir"])
 
@@ -128,6 +129,7 @@ class Configuration():
         home = pathlib.Path.home()
         data_path = self.get("data_path")
         if data_path is not None and data_path != "" and os.path.exists(data_path) and os.path.isdir(data_path):
+            logger.warn(f"The data dir is set to {data_path}/{app_name}: {os.path.join(data_path, app_name)}")
             return os.path.join(data_path, app_name)
         if is_docker():
             return "/config"

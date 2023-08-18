@@ -141,5 +141,6 @@ class Configuration():
             return str(home / f"Library/Application Support/{app_name}")
         if os.uname()[0] == "FreeBSD":
             return str(home / f".local/share/{app_name}")
+        logger.warn("Unsupported Operating System!")
         warnings.warn("Warning: Unsupported Operating System!")
         return None

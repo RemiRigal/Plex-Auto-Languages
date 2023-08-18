@@ -178,6 +178,9 @@ plexautolanguages:
           - "scheduler"
       - "..."
 
+  # Path where the system and cache files are written, defaults to a standard OS specific path if left empty (recommended)
+  data_path: ""
+
   # Whether or not to enable the debug mode, defaults to 'false'
   # Enabling debug mode will significantly increase the number of output logs
   debug: false

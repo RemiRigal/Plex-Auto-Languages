@@ -113,6 +113,9 @@ class Configuration():
         if self.get("scheduler.enable") and not re.match(r"^\d{2}:\d{2}$", self.get("scheduler.schedule_time")):
             logger.error("A valid 'schedule_time' parameter with the format 'HH:MM' is required (ex: 02:30)")
             raise InvalidConfiguration
+        if self.get("data_path") != "" and not os.path.exists(self.get("data_path")):
+            logger.error("The 'data_path' parameter must be a valid path")
+            raise InvalidConfiguration
         logger.info("The provided configuration has been successfully validated")
 
     def _add_system_config(self):

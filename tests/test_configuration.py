@@ -218,6 +218,11 @@ def test_configuration_unvalidated():
     del os.environ["SCHEDULER_ENABLE"]
     del os.environ["SCHEDULER_SCHEDULE_TIME"]
 
+    os.environ["DATA_PATH"] = "/invalid_path"
+    with pytest.raises(InvalidConfiguration):
+        _ = Configuration(None)
+    del os.environ["DATA_PATH"]
+
 
 def test_configuration_data_dir():
     with patch("plex_auto_languages.utils.configuration.is_docker", return_value=False):

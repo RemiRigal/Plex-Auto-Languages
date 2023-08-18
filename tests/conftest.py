@@ -19,6 +19,7 @@ def config():
     assert SERVER_TOKEN, "Required SERVER_TOKEN not specified."
     os.environ["PLEX_URL"] = SERVER_BASEURL
     os.environ["PLEX_TOKEN"] = SERVER_TOKEN
+    os.environ["DATA_PATH"] = "/tmp"
     return Configuration(None)
 
 

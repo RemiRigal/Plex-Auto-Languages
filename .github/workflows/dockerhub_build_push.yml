@@ -34,7 +34,7 @@ jobs:
         with:
           images: |
             docker.io/remirigal/plex-auto-languages
-            ghcr.io/${{ github.repository }}
+            ghcr.io/remirigal/plex-auto-languages
           tags: |
             type=ref,event=branch
             type=ref,event=tag

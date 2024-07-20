@@ -280,8 +280,10 @@ class PlexServer(UnprivilegedPlexServer):
             user = self.get_user_by_id(episode.accountID)
             if user is None:
                 continue
-            episode.reload()
-            self.change_tracks(user.name, episode, EventType.SCHEDULER)
+            episode = episode.source()
+            if episode is not None:
+                episode.reload()
+                self.change_tracks(user.name, episode, EventType.SCHEDULER)
 
         # Scan library
         added, updated = self.cache.refresh_library_cache()

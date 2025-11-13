@@ -46,6 +46,10 @@ class PlexPlaying(PlexAlert):
         if user_plex is None:
             return
 
+        # Check if key is streaming live TV
+        if self.item_key is None or self.item_key.startswith("/livetv"):
+            return
+
         # Skip if not an Episode
         item = user_plex.fetch_item(self.item_key)
         if item is None or not isinstance(item, Episode):

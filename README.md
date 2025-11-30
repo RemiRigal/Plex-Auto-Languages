@@ -62,6 +62,93 @@ services:
     restart: unless-stopped
 ```
 
+### Kubernetes installation
+
+Here is an example of a Kubernetes manifest file, with inline `config.yaml` (config content omitted, copy paste into yaml from [Configuration](#configuration) below):
+
+```yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: plex-auto-languages
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plex-auto-languages
+  namespace: plex-auto-languages
+  labels:
+    app: plex-auto-languages
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plex-auto-languages
+      tier: backend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: plex-auto-languages
+        tier: backend
+      name: plex-auto-languages
+    spec:
+      containers:
+        - name: plex-auto-languages
+          image: remirigal/plex-auto-languages:latest
+          env:
+            - name: TZ
+              value: Europe/Paris
+          volumeMounts:
+            - mountPath: /config
+              name: plex-auto-languages-config
+            - mountPath: /config/config.yaml
+              name: plex-auto-languages-yaml
+              subPath: config.yaml
+      dnsConfig:
+        # Maybe not necessary depending on your cluster setup; makes external plex names resolveable
+        options:
+          - name: ndots
+            value: "1"
+      volumes:
+        - name: plex-auto-languages-config
+          persistentVolumeClaim:
+            claimName: plex-auto-languages-config
+        - name: plex-auto-languages-yaml
+          configMap:
+            name: plex-auto-languages-yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: plex-auto-languages-config
+  namespace: plex-auto-languages
+  labels:
+    app: plex-auto-languages
+spec:
+  accessModes:
+    - ReadWriteOnce
+  # Depends on your setup; default is usually fine, explicit is better
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plex-auto-languages-yaml
+  namespace: plex-auto-languages
+  labels:
+    app: plex-auto-languages
+data:
+  config.yaml: |+
+    plexautolanguages:
+      update_level: "show"
+    # ... Additional contents omitted. Paste default config file in here indented under `config.yaml:`
+```
 
 ## Python installation
 

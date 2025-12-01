@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from plex_auto_languages.exceptions import InvalidConfiguration
 from plex_auto_languages.utils.configuration import Configuration
-from plex_auto_languages.utils.configuration import deep_dict_update, env_dict_update, is_docker, get_data_directory
+from plex_auto_languages.utils.configuration import deep_dict_update, env_dict_update, is_docker
 from plex_auto_languages.utils.configuration import logger
 
 
@@ -19,42 +19,59 @@ def test_is_docker():
 
 
 def test_get_data_directory():
+    os.environ["PLEX_URL"] = "http://localhost:32400"
+    os.environ["PLEX_TOKEN"] = "token"
+    config = Configuration(None)
+
     initial_platform = sys.platform
     with patch("plex_auto_languages.utils.configuration.is_docker", return_value=False):
         sys.platform = "win32"
-        assert get_data_directory("test") == os.path.expanduser("~/AppData/Roaming/test")
+        assert config._get_data_directory("test") == os.path.expanduser("~/AppData/Roaming/test")
 
         sys.platform = "linux"
-        assert get_data_directory("test") == os.path.expanduser("~/.local/share/test")
+        assert config._get_data_directory("test") == os.path.expanduser("~/.local/share/test")
 
         sys.platform = "darwin"
-        assert get_data_directory("test") == os.path.expanduser("~/Library/Application Support/test")
+        assert config._get_data_directory("test") == os.path.expanduser("~/Library/Application Support/test")
 
         sys.platform = "freebsdxx"
         with patch("os.uname", return_value=["FreeBSD"]):
-            assert get_data_directory("test") == os.path.expanduser("~/.local/share/test")
+            assert config._get_data_directory("test") == os.path.expanduser("~/.local/share/test")
 
         sys.platform = "unknown_platform"
         with patch.object(warnings, "warn") as mocked_warn:
-            assert get_data_directory("test") is None
+            assert config._get_data_directory("test") is None
             mocked_warn.assert_called_once()
+
+        os.environ["DATA_PATH"] = "/tmp"
+        config = Configuration(None)
+        assert config._get_data_directory("test") == os.path.expanduser("/tmp/test")
+        del os.environ["DATA_PATH"]
+
+    config = Configuration(None)
 
     with patch("plex_auto_languages.utils.configuration.is_docker", return_value=True):
         sys.platform = "win32"
-        assert get_data_directory("test") == "/config"
+        assert config._get_data_directory("test") == "/config"
 
         sys.platform = "linux"
-        assert get_data_directory("test") == "/config"
+        assert config._get_data_directory("test") == "/config"
 
         sys.platform = "darwin"
-        assert get_data_directory("test") == "/config"
+        assert config._get_data_directory("test") == "/config"
 
         sys.platform = "freebsdxx"
         with patch("os.uname", return_value=["FreeBSD"]):
-            assert get_data_directory("test") == "/config"
+            assert config._get_data_directory("test") == "/config"
 
         sys.platform = "unknown_platform"
-        assert get_data_directory("test") == "/config"
+        assert config._get_data_directory("test") == "/config"
+
+        os.environ["DATA_PATH"] = "/tmp"
+        config = Configuration(None)
+        assert config._get_data_directory("test") == os.path.expanduser("/tmp/test")
+        del os.environ["DATA_PATH"]
+
     sys.platform = initial_platform
 
 
@@ -201,15 +218,21 @@ def test_configuration_unvalidated():
     del os.environ["SCHEDULER_ENABLE"]
     del os.environ["SCHEDULER_SCHEDULE_TIME"]
 
+    os.environ["DATA_PATH"] = "/invalid_path"
+    with pytest.raises(InvalidConfiguration):
+        _ = Configuration(None)
+    del os.environ["DATA_PATH"]
+
 
 def test_configuration_data_dir():
     with patch("plex_auto_languages.utils.configuration.is_docker", return_value=False):
-        data_dir = get_data_directory("PlexAutoLanguages")
-        if os.path.exists(data_dir):
-            shutil.rmtree(data_dir)
-
         os.environ["PLEX_URL"] = "http://localhost:32400"
         os.environ["PLEX_TOKEN"] = "token"
+
+        config = Configuration(None)
+        data_dir = config._get_data_directory("PlexAutoLanguages")
+        if os.path.exists(data_dir):
+            shutil.rmtree(data_dir)
 
         _ = Configuration(None)
         assert os.path.exists(data_dir)

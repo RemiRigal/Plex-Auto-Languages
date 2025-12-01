@@ -20,4 +20,6 @@ plexautolanguages:
     enable: false
     apprise_configs: []
 
+  data_path: ""
+
   debug: false
